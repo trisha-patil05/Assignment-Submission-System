@@ -1,0 +1,207 @@
+.navbar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 65px;
+  background: #0f172a;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2rem;
+  z-index: 1000;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  box-shadow: 0 2px 20px rgba(0,0,0,0.2);
+}
+
+.navbar-logo {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.3px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.navbar-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.navbar-role {
+  background: #6366f1;
+  color: #fff;
+  padding: 0.28rem 0.85rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.navbar-user {
+  color: #cbd5e1;
+  font-size: 0.88rem;
+  font-weight: 500;
+  background: rgba(255,255,255,0.07);
+  padding: 0.4rem 1rem;
+  border-radius: 20px;
+}
+
+.logout-btn {
+  background: transparent;
+  border: 1.5px solid rgba(239,68,68,0.5);
+  color: #f87171;
+  padding: 0.4rem 1rem;
+  border-radius: 20px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+  width: auto;
+}
+
+.logout-btn:hover {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: #fff;
+  transform: none;
+  box-shadow: none;
+}
+
+/* ── Notification Bell ── */
+.notif-wrapper {
+  position: relative;
+}
+
+.bell-btn {
+  position: relative;
+  background: rgba(255,255,255,0.07);
+  border: none;
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0.4rem 0.7rem;
+  border-radius: 20px;
+  transition: background 0.2s;
+}
+
+.bell-btn:hover {
+  background: rgba(255,255,255,0.13);
+}
+
+.bell-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 0.1rem 0.35rem;
+  border-radius: 999px;
+  min-width: 17px;
+  text-align: center;
+}
+
+/* ── Dropdown ── */
+.notif-dropdown {
+  position: absolute;
+  top: calc(100% + 0.75rem);
+  right: 0;
+  width: 300px;
+  background: #1e293b;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+  z-index: 9999;
+  overflow: hidden;
+}
+
+.notif-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: #f1f5f9;
+}
+
+.clear-btn {
+  background: none;
+  border: none;
+  color: #6366f1;
+  font-size: 0.78rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.clear-btn:hover { color: #818cf8; }
+
+.notif-item {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  transition: background 0.2s;
+  cursor: default;
+}
+
+.notif-item:hover { background: rgba(255,255,255,0.04); }
+.notif-item:last-child { border-bottom: none; }
+
+.notif-icon { font-size: 1.2rem; flex-shrink: 0; margin-top: 0.1rem; }
+
+.notif-body { flex: 1; }
+
+.notif-msg {
+  font-size: 0.83rem;
+  color: #cbd5e1;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.notif-grade {
+  font-size: 0.8rem;
+  color: #10b981;
+  font-weight: 700;
+  margin: 0.25rem 0 0;
+}
+
+.notif-time {
+  font-size: 0.72rem;
+  color: #475569;
+  margin: 0.2rem 0 0;
+}
+
+.notif-empty {
+  padding: 2rem;
+  text-align: center;
+  color: #475569;
+  font-size: 0.85rem;
+}
+
+/* ── Toast ── */
+.toast {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  background: #1e293b;
+  color: #f1f5f9;
+  padding: 1rem 1.4rem;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  border-left: 4px solid #6366f1;
+  font-size: 0.88rem;
+  z-index: 9999;
+  animation: slideIn 0.3s ease;
+  max-width: 320px;
+  line-height: 1.5;
+}
+
+@keyframes slideIn {
+  from { transform: translateY(16px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
