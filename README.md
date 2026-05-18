@@ -1,59 +1,181 @@
-# Assignment Submission System
+![React](https://img.shields.io/badge/Frontend-React-blue)
+![Node](https://img.shields.io/badge/Backend-Node.js-green)
+![MongoDB](https://img.shields.io/badge/Database-MongoDB-brightgreen)
+![JWT](https://img.shields.io/badge/Auth-JWT-orange)
+![Status](https://img.shields.io/badge/Status-Active-success)
 
-A full-stack web application for managing assignments between mentors and students. The project uses React on the frontend and Node.js/Express with MongoDB on the backend, with protected routes for mentor and student roles.[1]
+# 📚 Assignment Submission System
 
-## Implemented Features
+Assignment Submission System is a full-stack web application designed to streamline the workflow between mentors and students. Mentors can create assignments, while students can view their assigned work and submit answers through a secure, role-based dashboard.
 
-### Authentication and access control
-- User registration is implemented with name, email, password, and role, and passwords are hashed before saving.[2]
-- User login is implemented and returns an authentication token after validating credentials.[2]
-- Role-based protected routes are configured for mentor and student pages.[1]
-- A reset password route is present in the frontend routing configuration.[1]
+Built with a clean UI and modular architecture, this project demonstrates practical full-stack development using React, Node.js, Express, and MongoDB.
 
-### User profile
-- Profile update functionality is implemented through an authenticated backend route for updating user name and profile image.[3]
+***
 
-### Mentor features
-- Mentors can access a dedicated dashboard through a protected route.[1]
-- Mentors can create assignments from a separate create-assignment page and are redirected back to the mentor dashboard after creation.[4]
+## 🚀 Features
 
-### Student features
-- Students can access a dedicated dashboard through a protected route.[1]
-- Students can open a submit-assignment page using a route with assignment id parameters.[1]
-- Students can write answer content and upload a file while submitting an assignment.[5]
-- The submission form supports drag-and-drop file upload for documents, images, and videos.[5]
-- The student dashboard includes assignment listing, grades view, and profile-related sections in the interface.[6]
+- 🔐 User registration and login system
+- 👤 Role-based access for mentor and student
+- 🧑‍🏫 Mentor dashboard for assignment management
+- 📝 Assignment creation for mentors
+- 📖 Student dashboard for viewing assigned work
+- 📤 Assignment submission form
+- 🖱️ Drag and drop file upload
+- 📎 File upload support for documents, images, and videos
+- ⏰ Deadline validation before submission
+- 📋 Submission status flow
+- 📊 Grades section on student dashboard
+- 💬 Feedback display for reviewed submissions
+- 🖼️ Profile update support
+- 🔔 Mentor notification on new submission
+- 📧 Email integration in the submission flow
+- 📁 Clean and modular folder structure
+- 📱 Responsive design
 
-### Assignment submission workflow
-- Submission logic checks whether the assignment exists before saving a submission.[7]
-- Submission logic blocks submissions after the deadline has passed.[7][5]
-- Submission logic supports file handling for document, image, and video uploads.[7]
-- Submitted assignments are stored with content, notes, files, and submission status.[7]
-- Students are redirected back to the student dashboard after successful submission.[5]
+***
 
-### Submission review and retrieval
-- Backend logic includes fetching submissions for mentors and students with populated assignment and student details.[7]
-- A submission history handler is present in the backend controller.[7]
+## 🛠️ Tech Stack
 
-### Notifications and email
-- Mentor notification emission is implemented when a student submits an assignment.[7]
-- Email sending logic is integrated in the submission controller.[7]
+### Frontend
+- React.js
+- React Router DOM
+- CSS
 
-### Frontend routes implemented
-- `/login` for login.[1]
-- `/register` for registration.[1]
-- `/mentor` for mentor dashboard.[1]
-- `/mentor/create` for assignment creation.[1]
-- `/student` for student dashboard.[1]
-- `/student/submit/:id` for assignment submission.[1]
-- `/reset-password/:token` for password reset.[1]
+### Backend
+- Node.js
+- Express.js
+- MongoDB with Mongoose
 
-## Tech Stack
-- Frontend: React, React Router.[1]
-- Backend: Node.js, Express.
-- Database: MongoDB.
-- Authentication: JWT-based auth with bcrypt password hashing.[2]
+### Other Tools
+- JWT Authentication
+- bcrypt.js
+- REST APIs
 
-## Current Project Scope
-- Two roles are implemented: mentor and student.[1]
-- Core flows implemented so far include authentication, role-based routing, assignment creation, assignment submission, submission retrieval, and dashboard-based access for both user roles.[7][4][6]
+***
+
+## 📂 Project Structure
+
+```bash
+assignment_submission_system/
+│
+├── backend/
+│   ├── controllers/     # Business logic
+│   ├── middleware/      # Auth middleware
+│   ├── models/          # MongoDB schemas
+│   ├── routes/          # API routes
+│   ├── utils/           # Helper functions
+│   └── server.js        # Entry point
+│
+├── frontend/
+│   └── src/
+│       ├── pages/       # App pages
+│       ├── services/    # API calls
+│       └── App.js       # Main routing
+│
+└── package.json
+```
+
+***
+
+## ⚙️ Installation & Setup
+
+### 1. Clone the Repository
+
+```bash
+git clone [your-repository-url]
+cd assignment_submission_system
+```
+
+### 2. Setup Backend
+
+```bash
+cd backend
+npm install
+```
+
+Create a `.env` file inside `backend/` and add:
+
+```env
+MONGO_URI=your_mongodb_connection_string
+JWT_SECRET=your_secret_key
+PORT=5000
+```
+
+Run the backend server:
+
+```bash
+node server.js
+```
+
+### 3. Setup Frontend
+
+```bash
+cd frontend
+npm install
+npm start
+```
+
+***
+
+## 🔐 Environment Variables
+
+| Variable | Description |
+|---|---|
+| `MONGO_URI` | MongoDB connection string |
+| `JWT_SECRET` | Secret key for JWT authentication |
+| `PORT` | Backend server port |
+
+***
+
+## 📸 Live Demo / Screenshots
+
+> Add your live demo link here if the project is deployed.
+
+> Example: [Live Demo](https://your-deployment-link.com)
+
+> Add screenshots of the mentor dashboard, student dashboard, and assignment submission form here.
+
+***
+
+## ✅ Why This Project Matters
+
+- Shows a complete workflow between mentors and students.
+- Demonstrates secure authentication and protected routes.
+- Proves you can connect frontend and backend APIs in a real product flow.
+- Includes real-world features like file upload, deadline checks, grading, and feedback display.
+- Makes a strong placement project because it reflects practical full-stack thinking, not just basic CRUD.
+
+***
+
+## 🚧 Future Scope
+
+- 📊 Submission history view for students
+- 📈 Analytics dashboard for mentors
+- 🔔 Deadline reminder notifications
+- 🧾 More detailed grading and review flow
+- 🖥️ Live deployment with hosted frontend and backend
+- 🧪 Additional validation and testing coverage
+
+***
+
+## 🧠 Key Learning Outcomes
+
+- Built a full-stack application using React and Node.js
+- Implemented authentication using JWT and bcrypt
+- Designed role-based access for mentors and students
+- Built assignment creation and submission workflows
+- Managed file uploads and deadline validation
+- Structured scalable frontend and backend architecture
+
+***
+
+## 👩‍💻 Author
+**Trisha Patil**  
+GitHub: [github.com/trisha-patil05](https://github.com/trisha-patil05)  
+LinkedIn: [linkedin.com/in/trisha-patil05](https://www.linkedin.com/in/trisha-patil05/)
+
+***
+
+## 🌟 Support
+
+If you found this project helpful, consider giving it a ⭐ on GitHub!
