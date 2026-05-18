@@ -135,7 +135,7 @@ npm start
 
 | Sign In | Mentor Dashboard |
 |--------|------------------|
-| ![](screenshots/signin.png) | ![](screenshots/mentor-dashboard.png) |
+| ![](screenshots/sign-in.png) | ![](screenshots/mentor-dashboard.png) |
 
 | Student Dashboard | Create Assignment |
 |------------------|------------------|
