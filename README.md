@@ -1,70 +1,59 @@
-# Getting Started with Create React App
+# Assignment Submission System
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A full-stack web application for managing assignments between mentors and students. The project uses React on the frontend and Node.js/Express with MongoDB on the backend, with protected routes for mentor and student roles.[1]
 
-## Available Scripts
+## Implemented Features
 
-In the project directory, you can run:
+### Authentication and access control
+- User registration is implemented with name, email, password, and role, and passwords are hashed before saving.[2]
+- User login is implemented and returns an authentication token after validating credentials.[2]
+- Role-based protected routes are configured for mentor and student pages.[1]
+- A reset password route is present in the frontend routing configuration.[1]
 
-### `npm start`
+### User profile
+- Profile update functionality is implemented through an authenticated backend route for updating user name and profile image.[3]
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+### Mentor features
+- Mentors can access a dedicated dashboard through a protected route.[1]
+- Mentors can create assignments from a separate create-assignment page and are redirected back to the mentor dashboard after creation.[4]
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+### Student features
+- Students can access a dedicated dashboard through a protected route.[1]
+- Students can open a submit-assignment page using a route with assignment id parameters.[1]
+- Students can write answer content and upload a file while submitting an assignment.[5]
+- The submission form supports drag-and-drop file upload for documents, images, and videos.[5]
+- The student dashboard includes assignment listing, grades view, and profile-related sections in the interface.[6]
 
-### `npm test`
+### Assignment submission workflow
+- Submission logic checks whether the assignment exists before saving a submission.[7]
+- Submission logic blocks submissions after the deadline has passed.[7][5]
+- Submission logic supports file handling for document, image, and video uploads.[7]
+- Submitted assignments are stored with content, notes, files, and submission status.[7]
+- Students are redirected back to the student dashboard after successful submission.[5]
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### Submission review and retrieval
+- Backend logic includes fetching submissions for mentors and students with populated assignment and student details.[7]
+- A submission history handler is present in the backend controller.[7]
 
-### `npm run build`
+### Notifications and email
+- Mentor notification emission is implemented when a student submits an assignment.[7]
+- Email sending logic is integrated in the submission controller.[7]
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### Frontend routes implemented
+- `/login` for login.[1]
+- `/register` for registration.[1]
+- `/mentor` for mentor dashboard.[1]
+- `/mentor/create` for assignment creation.[1]
+- `/student` for student dashboard.[1]
+- `/student/submit/:id` for assignment submission.[1]
+- `/reset-password/:token` for password reset.[1]
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## Tech Stack
+- Frontend: React, React Router.[1]
+- Backend: Node.js, Express.
+- Database: MongoDB.
+- Authentication: JWT-based auth with bcrypt password hashing.[2]
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
-
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+## Current Project Scope
+- Two roles are implemented: mentor and student.[1]
+- Core flows implemented so far include authentication, role-based routing, assignment creation, assignment submission, submission retrieval, and dashboard-based access for both user roles.[7][4][6]
