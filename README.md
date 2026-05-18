@@ -14,24 +14,28 @@ Built with a clean UI and modular architecture, this project demonstrates practi
 
 ## 🚀 Features
 
-- 🔐 User registration and login system
-- 👤 Role-based access for mentor and student
-- 🧑‍🏫 Mentor dashboard for assignment management
-- 📝 Assignment creation for mentors
-- 📖 Student dashboard for viewing assigned work
-- 📤 Assignment submission form
-- 🖱️ Drag and drop file upload
-- 📎 File upload support for documents, images, and videos
-- ⏰ Deadline validation before submission
-- 📋 Submission status flow
-- 📊 Grades section on student dashboard
-- 💬 Feedback display for reviewed submissions
-- 🖼️ Profile update support
-- 🔔 Mentor notification on new submission
-- 📧 Email integration in the submission flow
-- 📁 Clean and modular folder structure
-- 📱 Responsive design
+### 👨‍🏫 Mentor Features
+- Mentor dashboard for assignment management
+- Assignment creation for mentors
+- Mentor notification on new submission
 
+### 🎓 Student Features
+- Student dashboard for viewing assigned work
+- Assignment submission form
+- Drag and drop file upload
+- File upload support for documents, images, and videos
+- Deadline validation before submission
+- Submission status flow
+- Grades section on student dashboard
+- Feedback display for reviewed submissions
+
+### 🔐 Common Features
+- User registration and login system
+- Role-based access for mentor and student
+- Profile update support
+- Email integration in the submission flow
+- Clean and modular folder structure
+- Responsive design
 ***
 
 ## 🛠️ Tech Stack
