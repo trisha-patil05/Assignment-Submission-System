@@ -131,14 +131,15 @@ npm start
 
 ***
 
-## 📸 Live Demo / Screenshots
+## 📸 Screenshots
 
-> Add your live demo link here if the project is deployed.
+| Sign In | Mentor Dashboard |
+|--------|------------------|
+| ![](screenshots/signin.png) | ![](screenshots/mentor-dashboard.png) |
 
-> Example: [Live Demo](https://your-deployment-link.com)
-
-> Add screenshots of the mentor dashboard, student dashboard, and assignment submission form here.
-
+| Student Dashboard | Create Assignment |
+|------------------|------------------|
+| ![](screenshots/student-dashboard.png) | ![](screenshots/create-assignment.png) |
 ***
 
 ## ✅ Why This Project Matters
