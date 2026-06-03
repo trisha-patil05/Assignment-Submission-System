@@ -8,6 +8,7 @@ import Register from "./pages/Register";
 import ResetPassword from "./pages/ResetPassword";
 import StudentDashboard from "./pages/StudentDashboard";
 import SubmitAssignment from "./pages/SubmitAssignment";
+import './styles/global.css';
 
 function App() {
   return (

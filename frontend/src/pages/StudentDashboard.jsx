@@ -1,7 +1,7 @@
 // pages/StudentDashboard.jsx
 import { useEffect, useState } from "react";
-
 import { useNavigate } from "react-router-dom";
+import { io } from "socket.io-client";
 import { getAssignments } from "../services/assignmentService";
 import { getCurrentUser, logoutUser } from "../services/authService";
 import { updateProfile, uploadProfileImage } from "../services/profileupload";
@@ -37,6 +37,33 @@ const [name, setName] = useState(user?.name || ""); // ✅ now user exists
     };
     load();
   }, []);
+  // ← NAYA: Socket.io notification listener
+  useEffect(() => {
+    const socket = io("http://localhost:5000");
+    
+    socket.on("connect", () => {
+      console.log("✅ Socket connected:", socket.id);
+      socket.emit("join", { userId: user._id, role: user.role });
+    });
+
+   socket.on("notification", (data) => {
+  console.log("🔔 Notification:", data);
+  
+  if (data.type === "assignment") {
+    // Assignments refresh karo - page reload nahi
+    getAssignments().then(aData => {
+      setAssignments(aData);
+      console.log("✅ Assignments updated");
+    });
+  }
+});
+
+    socket.on("disconnect", () => {
+      console.log("❌ Socket disconnected");
+    });
+
+    return () => socket.disconnect();
+  }, [user]);
 
   // Find my submission for a given assignment
   const mySubmission = (assignmentId) =>
@@ -240,7 +267,7 @@ const [name, setName] = useState(user?.name || ""); // ✅ now user exists
         </div>
       ) : (
         <button className="btn btn-primary btn-sm"
-          onClick={() => navigate(`/submit/${a._id}`)}>
+          onClick={() => navigate(`/student/submit/${a._id}`)}>
           📤 Submit Assignment
         </button>
       );

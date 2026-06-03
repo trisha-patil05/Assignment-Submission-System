@@ -1,8 +1,46 @@
+import stringSimilarity from 'string-similarity';
 import Assignment from "../models/Assignment.js";
 import Submission from "../models/Submission.js";
 import User from "../models/User.js";
 import { io } from "../server.js";
 import sendEmail from "../utils/sendEmail.js";
+
+const calculatePlagiarismScore = async (assignmentId, content) => {
+  try {
+    const otherSubmissions = await Submission.find({
+      assignmentId,
+      content: { $exists: true, $ne: "" }
+    });
+
+    if (otherSubmissions.length === 0) {
+      return { score: 0, matchedWith: [] };
+    }
+
+    const matches = otherSubmissions
+      .map(sub => ({
+        submissionId: sub._id,
+        studentName: sub.studentId?.name || "Unknown",
+        similarity: Math.round(
+          stringSimilarity.compareTwoStrings(
+            content.toLowerCase(),
+            (sub.content || "").toLowerCase()
+          ) * 100
+        )
+      }))
+      .filter(m => m.similarity > 30)
+      .sort((a, b) => b.similarity - a.similarity);
+
+    const maxScore = matches.length > 0 ? matches[0].similarity : 0;
+
+    return {
+      score: maxScore,
+      matchedWith: matches.slice(0, 3)
+    };
+  } catch (err) {
+    console.error("Plagiarism check error:", err);
+    return { score: 0, matchedWith: [] };
+  }
+};
 
 export const submitAssignment = async (req, res) => {
   try {
@@ -14,8 +52,17 @@ export const submitAssignment = async (req, res) => {
       return res.status(404).json({ message: "Assignment not found" });
     }
 
-    if (assignment.deadline && new Date() > new Date(assignment.deadline)) {
-      return res.status(400).json({ message: "Deadline has passed." });
+    // Check deadline and calculate if late
+    let isLate = false;
+    let minutesLate = 0;
+    const now = new Date();
+
+    if (assignment.deadline) {
+      const deadlineTime = new Date(assignment.deadline);
+      if (now > deadlineTime) {
+        isLate = true;
+        minutesLate = Math.round((now - deadlineTime) / (1000 * 60));
+      }
     }
 
     const existing = await Submission.findOne({ assignmentId, studentId });
@@ -41,12 +88,18 @@ export const submitAssignment = async (req, res) => {
         files,
         status: "submitted",
         version: 1,
+        isLate,        // ← NEW
+        minutesLate,   // ← NEW
       });
 
+      // Emit notification with late status
       io.to("mentor").emit("notification", {
         type: "submission",
-        message: `📨 ${student.name || student.email} submitted "${assignment.title}"`,
+        message: isLate 
+          ? `⏰ ${student.name || student.email} submitted "${assignment.title}" (${minutesLate}min late)`
+          : `📨 ${student.name || student.email} submitted "${assignment.title}"`,
         submissionId: submission._id,
+        isLate,
         createdAt: new Date(),
       });
 
@@ -70,13 +123,18 @@ export const submitAssignment = async (req, res) => {
     existing.version = existing.version + 1;
     existing.status = "submitted";
     existing.submittedAt = new Date();
+    existing.isLate = isLate;        // ← NEW: Update late status on resubmit
+    existing.minutesLate = minutesLate; // ← NEW
 
     await existing.save();
 
     io.to("mentor").emit("notification", {
       type: "resubmission",
-      message: `🔁 ${student.name || student.email} resubmitted "${assignment.title}"`,
+      message: isLate
+        ? `🔁 ${student.name || student.email} resubmitted "${assignment.title}" (${minutesLate}min late)`
+        : `🔁 ${student.name || student.email} resubmitted "${assignment.title}"`,
       submissionId: existing._id,
+      isLate,
       createdAt: new Date(),
     });
 
@@ -146,6 +204,16 @@ export const reviewSubmission = async (req, res) => {
     res.status(500).json({ message: "Review failed", error: err.message });
   }
 };
+ export const getMySubmissions = async (req, res) => {
+  try {
+    const submissions = await Submission.find({ studentId: req.user.id })
+      .populate("assignmentId");
+    res.json(submissions);
+  } catch (err) {
+    console.error("getMySubmissions error:", err);
+    res.status(500).json({ error: err.message });
+  }
+};
 
 export const getSubmissions = async (req, res) => {
   try {
@@ -155,10 +223,12 @@ export const getSubmissions = async (req, res) => {
     if (user.role === "mentor") {
       submissions = await Submission.find()
         .populate("studentId", "name email")
-        .populate("assignmentId", "title");
+        .populate("assignmentId", "title deadline")
+        .sort({ submittedAt: -1 });
     } else {
       submissions = await Submission.find({ studentId: user.id })
-        .populate("assignmentId", "title description deadline");
+        .populate("assignmentId", "title description deadline")
+        .sort({ submittedAt: -1 });
     }
 
     res.json(submissions);
@@ -188,6 +258,8 @@ export const getSubmissionHistory = async (req, res) => {
         files: submission.files,
         submittedAt: submission.submittedAt,
         status: submission.status,
+        isLate: submission.isLate,      // ← NEW
+        minutesLate: submission.minutesLate, // ← NEW
       },
       history: [...submission.versions].reverse(),
     });

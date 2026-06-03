@@ -64,6 +64,31 @@ versions: [
     type: Date,
     default: null,
   },
-}, { timestamps: true });   // ← ADD this for createdAt/updatedAt
+  
+  // ← YE ADD KARO (isLate feature)
+  isLate: {
+    type: Boolean,
+    default: false,
+  },
+  minutesLate: {
+    type: Number,
+    default: 0,
+  },
+  
+  // ← YE ADD KARO (Plagiarism feature)
+  plagiarismScore: {
+    type: Number,
+    min: 0,
+    max: 100,
+    default: 0,
+  },
+  plagiarismMatches: [
+    {
+      submissionId: mongoose.Schema.Types.ObjectId,
+      studentName: String,
+      similarity: Number,
+    }
+  ],
+}, { timestamps: true }); // ← ADD this for createdAt/updatedAt
 
 export default mongoose.model("Submission", submissionSchema);
