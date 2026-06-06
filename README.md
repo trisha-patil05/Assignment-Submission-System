@@ -180,42 +180,6 @@ npm start
 
 ***
 
-## 📡 API Endpoints
-
-### Authentication
-```
-POST   /api/auth/register        - Register new user
-POST   /api/auth/login           - User login
-POST   /api/auth/refresh         - Refresh JWT token
-POST   /api/auth/forgot-password - Send password reset email
-```
-
-### Assignments
-```
-GET    /api/assignments          - List all assignments
-POST   /api/assignments          - Create assignment (Mentor)
-GET    /api/assignments/:id      - Get assignment details
-PUT    /api/assignments/:id      - Update assignment (Mentor)
-DELETE /api/assignments/:id      - Delete assignment (Mentor)
-```
-
-### Submissions
-```
-GET    /api/submissions          - Get user submissions
-POST   /api/submissions          - Submit assignment
-GET    /api/submissions/:id      - Get submission details
-PUT    /api/submissions/:id      - Update submission
-```
-
-### Grades
-```
-POST   /api/grades               - Add grade and feedback
-GET    /api/grades/:submissionId - Get grades
-PUT    /api/grades/:gradeId      - Update grade
-```
-
-***
-
 ## 📸 Screenshots
 
 | Sign In | Mentor Dashboard |
