@@ -62,11 +62,6 @@ Built with a clean UI and modular architecture, this project demonstrates practi
 - Multer (File Upload)
 - Joi (Input Validation)
 
-### Other Tools
-- REST APIs
-- Environment Configuration
-- CORS enabled
-
 ***
 
 ## 📂 Project Structure
