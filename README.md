@@ -15,9 +15,11 @@ Built with a clean UI and modular architecture, this project demonstrates practi
 ## 🚀 Features
 
 ### 👨‍🏫 Mentor Features
-- Mentor dashboard for assignment management
-- Assignment creation for mentors
-- Mentor notification on new submission
+- Mentor dashboard with real-time submission tracking
+- Assignment creation with deadline management
+- Advanced grading system with feedback
+- Email notifications on new submissions
+- Export grades as CSV
 
 ### 🎓 Student Features
 - Student dashboard for viewing assigned work
@@ -28,32 +30,37 @@ Built with a clean UI and modular architecture, this project demonstrates practi
 - Submission status flow
 - Grades section on student dashboard
 - Feedback display for reviewed submissions
+- Submission history tracking
 
 ### 🔐 Common Features
 - User registration and login system
+- JWT authentication with refresh tokens
 - Role-based access for mentor and student
 - Profile update support
+- Password reset via email
 - Email integration in the submission flow
 - Clean and modular folder structure
 - Responsive design
+
 ***
 
 ## 🛠️ Tech Stack
 
 ### Frontend
-- React.js
+- React.js with Hooks
 - React Router DOM
-- CSS
+- CSS3 (Responsive)
+- Axios for API calls
 
 ### Backend
 - Node.js
 - Express.js
 - MongoDB with Mongoose
-
-### Other Tools
 - JWT Authentication
-- bcrypt.js
-- REST APIs
+- bcryptjs
+- Nodemailer
+- Multer (File Upload)
+- Joi (Input Validation)
 
 ***
 
@@ -64,16 +71,21 @@ assignment_submission_system/
 │
 ├── backend/
 │   ├── controllers/     # Business logic
-│   ├── middleware/      # Auth middleware
+│   ├── middleware/      # Auth & validation middleware
 │   ├── models/          # MongoDB schemas
 │   ├── routes/          # API routes
+│   ├── services/        # Email, file services
 │   ├── utils/           # Helper functions
-│   └── server.js        # Entry point
+│   ├── server.js        # Entry point
+│   └── .env.example
 │
 ├── frontend/
 │   └── src/
+│       ├── components/  # Reusable components
 │       ├── pages/       # App pages
 │       ├── services/    # API calls
+│       ├── hooks/       # Custom React hooks
+│       ├── context/     # Auth Context
 │       └── App.js       # Main routing
 │
 └── package.json
@@ -101,14 +113,30 @@ Create a `.env` file inside `backend/` and add:
 
 ```env
 MONGO_URI=your_mongodb_connection_string
-JWT_SECRET=your_secret_key
+JWT_SECRET=your_secret_key_min_32_chars
+JWT_EXPIRY=7d
 PORT=5000
+NODE_ENV=development
+
+# Email Configuration
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USER=your_email@gmail.com
+EMAIL_PASS=your_app_password
+
+# File Upload
+MAX_FILE_SIZE=10485760
+ALLOWED_FILE_TYPES=pdf,doc,docx,pptx,zip,mp4,png,jpg
+
+# Frontend URL
+FRONTEND_URL=http://localhost:3000
 ```
 
 Run the backend server:
 
 ```bash
-node server.js
+npm start          # Production
+npm run dev        # Development with nodemon
 ```
 
 ### 3. Setup Frontend
@@ -116,6 +144,17 @@ node server.js
 ```bash
 cd frontend
 npm install
+```
+
+Create `.env` file:
+
+```env
+REACT_APP_API_URL=http://localhost:5000/api
+```
+
+Start frontend:
+
+```bash
 npm start
 ```
 
@@ -126,8 +165,13 @@ npm start
 | Variable | Description |
 |---|---|
 | `MONGO_URI` | MongoDB connection string |
-| `JWT_SECRET` | Secret key for JWT authentication |
+| `JWT_SECRET` | Secret key for JWT (min 32 chars) |
+| `JWT_EXPIRY` | Token expiration time (e.g., 7d) |
 | `PORT` | Backend server port |
+| `EMAIL_USER` | Gmail/SMTP email address |
+| `EMAIL_PASS` | Email password/app password |
+| `MAX_FILE_SIZE` | Max upload size in bytes |
+| `ALLOWED_FILE_TYPES` | Comma-separated file types |
 
 ***
 
@@ -140,6 +184,19 @@ npm start
 | Student Dashboard | Create Assignment |
 |------------------|------------------|
 | ![](screenshots/student-dashboard.png) | ![](screenshots/create-assignment.png) |
+
+***
+
+## 🔐 Security Features
+
+- ✅ JWT Authentication with tokens
+- ✅ Password hashing with bcryptjs
+- ✅ Server-side input validation
+- ✅ CORS protection
+- ✅ Role-based access control
+- ✅ Protected API routes
+- ✅ Email verification support
+
 ***
 
 ## ✅ Why This Project Matters
@@ -149,32 +206,43 @@ npm start
 - Proves you can connect frontend and backend APIs in a real product flow.
 - Includes real-world features like file upload, deadline checks, grading, and feedback display.
 - Makes a strong placement project because it reflects practical full-stack thinking, not just basic CRUD.
+- Implements role-based access control and permission management.
+- Uses proper error handling and validation.
+- Structured with scalable architecture (services, middleware patterns).
 
 ***
 
 ## 🚧 Future Scope
 
-- 📊 Submission history view for students
-- 📈 Analytics dashboard for mentors
-- 🔔 Deadline reminder notifications
-- 🧾 More detailed grading and review flow
+- 📊 Advanced analytics dashboard for mentors
+- 📈 Class performance statistics and charts
+- 🔔 Email-based deadline reminder notifications
+- 🧾 Detailed grading rubrics
+- 📱 Mobile app version (React Native)
+- 🔍 Plagiarism detection integration
+- 🌐 Multi-language support
 - 🖥️ Live deployment with hosted frontend and backend
-- 🧪 Additional validation and testing coverage
+- 🧪 Additional test coverage
 
 ***
 
 ## 🧠 Key Learning Outcomes
 
-- Built a full-stack application using React and Node.js
-- Implemented authentication using JWT and bcrypt
-- Designed role-based access for mentors and students
-- Built assignment creation and submission workflows
-- Managed file uploads and deadline validation
-- Structured scalable frontend and backend architecture
+- ✅ Built a full-stack application using React and Node.js
+- ✅ Implemented authentication using JWT and bcrypt
+- ✅ Designed role-based access control for mentors and students
+- ✅ Built assignment creation and submission workflows
+- ✅ Managed file uploads with validation and storage
+- ✅ Implemented deadline validation and submission status tracking
+- ✅ Created email notification system
+- ✅ Structured scalable frontend and backend architecture
+- ✅ Implemented proper error handling and input validation
+- ✅ Used MongoDB with proper schema design and indexing
 
 ***
 
 ## 👩‍💻 Author
+
 **Trisha Patil**  
 GitHub: [github.com/trisha-patil05](https://github.com/trisha-patil05)  
 LinkedIn: [linkedin.com/in/trisha-patil05](https://www.linkedin.com/in/trisha-patil05/)
