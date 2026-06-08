@@ -14,24 +14,24 @@ import submissionRoutes from "./routes/submissionRoutes.js";
 connectDB();
 
 const app = express();
-const server = http.createServer(app); // ← wrap express
+const server = http.createServer(app);
 
 // Setup Socket.io
-export const io = new Server(server, {
+export const io = new Server(server, {  // ← ADD "export" HERE
   cors: {
     origin: ["http://localhost:5173", "http://localhost:3000"],
     methods: ["GET", "POST", "PATCH"],
   },
+  transports: ["websocket", "polling"],
 });
-// Socket connection handler
+
 io.on("connection", (socket) => {
   console.log("🔌 Socket connected:", socket.id);
 
-  // User joins their personal room
   socket.on("join", ({ userId, role }) => {
-    socket.join(userId);          // personal room
-    socket.join(role);            // "mentor" or "student" room
-    socket.join("all_students");  // everyone room
+    socket.join(userId);
+    socket.join(role);
+    socket.join("all_students");
     console.log(`✅ ${role} ${userId} joined rooms`);
   });
 
@@ -40,24 +40,20 @@ io.on("connection", (socket) => {
   });
 });
 
-// Middleware
 app.use(cors({
   origin: ["http://localhost:5173", "http://localhost:3000"],
 }));
 app.use(express.json());
 
-// ENV CHECK
 console.log("ENV CHECK:", {
   cloud: process.env.CLOUDINARY_CLOUD_NAME,
   key: process.env.CLOUDINARY_API_KEY ? "✅ loaded" : "❌ MISSING",
   secret: process.env.CLOUDINARY_API_SECRET ? "✅ loaded" : "❌ MISSING",
 });
 
-// Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/assignments", assignmentRoutes);
 app.use("/api/submissions", submissionRoutes);
 
-// ← changed app.listen to server.listen
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
