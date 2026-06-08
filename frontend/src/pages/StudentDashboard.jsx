@@ -96,7 +96,7 @@ const [uploading, setUploading] = useState(false);// ✅ now user exists
   try {
     const url = await uploadProfileImage(file);
     setProfileImage(url);
-    await updateProfile({ profileImage: url, name });
+    await updateProfile({ profileImage: url, name: user?.email?.split("@")[0] });
   } finally {
     setUploading(false);
   }
