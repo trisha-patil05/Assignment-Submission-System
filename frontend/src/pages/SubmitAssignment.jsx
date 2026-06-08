@@ -41,7 +41,7 @@ export default function SubmitAssignment() {
     setLoading(true);
     try {
       await submitAssignment(id, content, file);
-      navigate("/student/submit/${a._id}");
+      navigate(`/student/submit/${a._id}`);
     } catch (err) {
       setError(err.response?.data?.message || "Submission failed. Try again.");
     } finally {

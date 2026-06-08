@@ -20,8 +20,7 @@ const [activeSection, setActiveSection] = useState("dashboard");
 const [filter, setFilter] = useState("all");
 const [search, setSearch] = useState("");
 const [profileImage, setProfileImage] = useState(user?.profileImage || ""); // ✅ now user exists
-const [uploading, setUploading] = useState(false);
-const [name, setName] = useState(user?.name || ""); // ✅ now user exists
+const [uploading, setUploading] = useState(false);// ✅ now user exists
 
 
   useEffect(() => {

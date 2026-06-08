@@ -36,7 +36,7 @@ export default function Navbar() {
     socket.off("notification");
     socket.disconnect();
   };
-}, []);
+}, [user]);
 
   const handleLogout = () => {
     socket.disconnect();
