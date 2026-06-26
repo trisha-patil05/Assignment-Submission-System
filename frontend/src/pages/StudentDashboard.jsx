@@ -24,21 +24,32 @@ const [uploading, setUploading] = useState(false);// ✅ now user exists
 
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        const [aData, sData] = await Promise.all([
-          getAssignments(),
-          getMySubmissions(),
-        ]);
-        setAssignments(aData);
-        setSubmissions(sData);
-      } finally { setLoading(false); }
-    };
+  const load = async () => {
+  try {
+    const [aData, sData] = await Promise.all([
+      getAssignments(),
+      getMySubmissions(),
+    ]);
+
+    console.log("Assignments:", aData);
+    console.log("Assignments Array?", Array.isArray(aData));
+
+    console.log("Submissions:", sData);
+    console.log("Submissions Array?", Array.isArray(sData));
+
+    setAssignments(Array.isArray(aData) ? aData : []);
+    setSubmissions(Array.isArray(sData) ? sData : []);
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setLoading(false);
+  }
+};
     load();
   }, []);
   // ← NAYA: Socket.io notification listener
   useEffect(() => {
-    const socket = io("http://localhost:5000");
+    const socket = io("https://assignment-submission-system-utbj.onrender.com");
     
     socket.on("connect", () => {
       console.log("✅ Socket connected:", socket.id);
