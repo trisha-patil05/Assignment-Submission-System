@@ -25,8 +25,13 @@ export default function MentorDashboard() {
         getAssignments(),
         getSubmissions(),
       ]);
-      setAssignments(aData);
-      setSubmissions(sData);
+      // ✅ FIX: Proper array validation
+      setAssignments(Array.isArray(aData) ? aData : []);
+      setSubmissions(Array.isArray(sData) ? sData : []);
+    } catch (err) {
+      console.error("❌ Failed to load data:", err);
+      setAssignments([]);
+      setSubmissions([]);
     } finally {
       setLoading(false);
     }
@@ -168,51 +173,42 @@ export default function MentorDashboard() {
                 ))}
               </div>
 
-              {/* Assignment Grid */}
+              {/* Assignment Cards */}
               {loading ? (
                 <div className="empty-state"><p>Loading...</p></div>
-              ) : assignmentsWithSubs.length === 0 ? (
+              ) : filteredAssignments.length === 0 ? (
                 <div className="empty-state">
                   <div className="empty-icon">📭</div>
-                  <p>No assignments yet.</p>
-                  <button className="btn btn-primary" style={{ marginTop: "1rem" }}
-                    onClick={() => navigate("/create-assignment")}>+ Create Assignment</button>
+                  <p>No assignments found.</p>
                 </div>
               ) : (
-                <div className="assignments-grid">
+                <div className="card-grid">
                   {filteredAssignments.map(a => (
-                    <div key={a._id} className={`assignment-card ${
-                      a.submissions.length === 0 ? "pending"
-                        : a.submissions.every(s => s.status === "reviewed") ? "reviewed"
-                        : "submitted"
-                    }`}>
-
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                        <h3 className="assignment-title">{a.title}</h3>
-                        <span className="badge" style={getBadgeStyle(
-                          a.submissions.length === 0 ? "pending"
-                            : a.submissions.every(s => s.status === "reviewed") ? "reviewed"
-                            : "submitted"
-                        )}>
-                          {a.submissions.length === 0 ? "No Submissions"
-                            : a.submissions.every(s => s.status === "reviewed") ? "All Reviewed"
-                            : `${a.submissions.length} Submitted`}
+                    <div key={a._id} className="assignment-card">
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1rem" }}>
+                        <h3 style={{ fontSize: "1.1rem", fontWeight: "700", margin: "0" }}>{a.title}</h3>
+                        <span style={{ background: "#ede9fe", color: "#4f46e5", padding: "0.2rem 0.8rem", borderRadius: "12px", fontSize: "0.8rem", fontWeight: "600", whiteSpace: "nowrap" }}>
+                          {a.submissions.length} {a.submissions.length === 1 ? "sub" : "subs"}
                         </span>
                       </div>
-                      <p className="assignment-desc">{a.description}</p>
-                      
-                      {/* ← NEW: Show late count if any */}
-                      {a.submissions.some(s => s.isLate && s.status !== "reviewed") && (
-                        <div style={{
-                          fontSize: "0.82rem", color: "#ef4444", fontWeight: "600",
-                          marginBottom: "0.5rem", display: "flex", alignItems: "center", gap: "4px"
-                        }}>
-                          ⏰ {a.submissions.filter(s => s.isLate && s.status !== "reviewed").length} late submission(s)
+
+                      <p style={{ color: "#6b7280", fontSize: "0.9rem", lineHeight: "1.4", marginBottom: "1rem" }}>{a.description}</p>
+
+                      {a.deadline && (
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", color: "#9ca3af", fontSize: "0.85rem", marginBottom: "1rem" }}>
+                          📅 {new Date(a.deadline).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
                         </div>
                       )}
-                      
-                      <div style={{ fontSize: "0.82rem", color: "#9ca3af" }}>
-                        {a.deadline && <span>📅 {new Date(a.deadline).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span>}
+
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem", fontSize: "0.82rem", marginTop: "1rem", paddingTop: "1rem", borderTop: "1px solid #f3f4f6" }}>
+                        <div>
+                          <span style={{ color: "#9ca3af" }}>Pending: </span>
+                          <span style={{ fontWeight: "700", color: "#f59e0b" }}>{a.submissions.filter(s => s.status === "submitted").length}</span>
+                        </div>
+                        <div>
+                          <span style={{ color: "#9ca3af" }}>Reviewed: </span>
+                          <span style={{ fontWeight: "700", color: "#10b981" }}>{a.submissions.filter(s => s.status === "reviewed").length}</span>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -226,35 +222,13 @@ export default function MentorDashboard() {
             <>
               <div className="page-header">
                 <div>
-                  <h1 className="page-title">📨 Submissions</h1>
-                  <p className="page-subtitle">Review and grade student submissions</p>
+                  <h1 className="page-title">📨 All Submissions</h1>
+                  <p className="page-subtitle">Review and grade student work</p>
                 </div>
               </div>
 
-              {/* ← NEW: Show late submissions alert if any */}
-              {lateSubmissions > 0 && (
-                <div style={{
-                  background: "#fee2e2", border: "1px solid #fca5a5",
-                  borderRadius: "12px", padding: "12px 16px", marginBottom: "1.5rem",
-                  display: "flex", alignItems: "center", gap: "8px"
-                }}>
-                  <span style={{ fontSize: "1.2rem" }}>⏰</span>
-                  <div>
-                    <p style={{ color: "#991b1b", fontWeight: "600", margin: "0 0 2px 0", fontSize: "0.95rem" }}>
-                      {lateSubmissions} late submission{lateSubmissions !== 1 ? "s" : ""}
-                    </p>
-                    <p style={{ color: "#b91c1c", margin: "0", fontSize: "0.85rem" }}>
-                      These were submitted past the deadline. Review them separately.
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {submissions.length === 0 ? (
-                <div className="empty-state">
-                  <div className="empty-icon">📭</div>
-                  <p>No submissions yet.</p>
-                </div>
+              {loading ? (
+                <div className="empty-state"><p>Loading...</p></div>
               ) : (
                 <div className="data-table">
                   <div className="table-header">
