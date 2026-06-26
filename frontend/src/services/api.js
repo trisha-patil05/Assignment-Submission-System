@@ -2,7 +2,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL + "/api",  // ✅ env variable use karo
+  baseURL: "https://assignment-submission-system-utbj.onrender.com/api",
 });
 
 // Auto-attach token to every request
