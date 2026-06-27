@@ -110,7 +110,7 @@ export default function MentorDashboard() {
 
           <div style={{ marginTop: "auto", paddingTop: "1.5rem", borderTop: "1px solid rgba(255,255,255,0.07)" }}>
             <div className="sidebar-section-label">ACTIONS</div>
-            <button className="sidebar-item" onClick={() => navigate("/create-assignment")}>
+            <button className="sidebar-item" onClick={() => navigate("/mentor/create")}>
               <span className="icon">➕</span> New Assignment
             </button>
             <button className="sidebar-item" onClick={() => { logoutUser(); navigate("/login"); }}>

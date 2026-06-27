@@ -18,41 +18,14 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/reset-password/:token" element={<ResetPassword />} />
-        <Route
-  path="/mentor"
-  element={
-    <ProtectedRoute role="mentor">
-      <MentorDashboard />
-    </ProtectedRoute>
-  }
-/>
-
-<Route
-  path="/mentor/create"
-  element={
-    <ProtectedRoute role="mentor">
-      <CreateAssignment />
-    </ProtectedRoute>
-  }
-/>
-
-<Route
-  path="/student"
-  element={
-    <ProtectedRoute role="student">
-      <StudentDashboard />
-    </ProtectedRoute>
-  }
-/>
-
-<Route
-  path="/student/submit/:id"
-  element={
-    <ProtectedRoute role="student">
-      <SubmitAssignment />
-    </ProtectedRoute>
-  }
-/>
+        <Route element={<ProtectedRoute role="mentor" />}>
+  <Route path="/mentor" element={<MentorDashboard />} />
+  <Route path="/mentor/create" element={<CreateAssignment />} />
+</Route>
+<Route element={<ProtectedRoute role="student" />}>
+  <Route path="/student" element={<StudentDashboard />} />
+  <Route path="/student/submit/:id" element={<SubmitAssignment />} />
+</Route>
       </Routes>
     </BrowserRouter>
   );
