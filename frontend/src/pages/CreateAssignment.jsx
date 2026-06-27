@@ -10,20 +10,19 @@ export default function CreateAssignment() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  setError("");
-  setLoading(true);
-  try {
-    await createAssignment(form);
-    setForm({ title: "", description: "", deadline: "" });
-    navigate("/mentor");
-  } catch (err) {
-    setError(err.response?.data?.message || "Failed to create assignment.");
-  } finally {
-    setLoading(false);
-  }
-};
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      await createAssignment(form);
+      navigate("/mentor/create");
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to create assignment.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const inputStyle = {
     display: "block", width: "100%", padding: "0.75rem 1rem",

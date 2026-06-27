@@ -1,11 +1,12 @@
-import { Navigate, Outlet } from "react-router-dom";
+// pages/ProtectedRoute.jsx
+import { Navigate } from "react-router-dom";
+import { getCurrentUser } from "../services/authService";
 
-export default function ProtectedRoute({ role }) {
-  const token = localStorage.getItem("token");
-  const userRole = localStorage.getItem("role");
+const ProtectedRoute = ({ children, allowedRole }) => {
+  const user = getCurrentUser();
+  if (!user) return <Navigate to="/login" />;
+  if (allowedRole && user.role !== allowedRole) return <Navigate to="/login" />;
+  return children;
+};
 
-  if (!token) return <Navigate to="/login" replace />;
-  if (role && userRole !== role) return <Navigate to="/login" replace />;
-
-  return <Outlet />;
-}
+export default ProtectedRoute;
