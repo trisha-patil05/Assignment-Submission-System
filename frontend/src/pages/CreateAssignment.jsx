@@ -1,4 +1,3 @@
-// pages/CreateAssignment.jsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createAssignment } from "../services/assignmentService";
@@ -16,7 +15,7 @@ export default function CreateAssignment() {
     setLoading(true);
     try {
       await createAssignment(form);
-      navigate("/mentor/create");
+      navigate("/mentor");
     } catch (err) {
       setError(err.response?.data?.message || "Failed to create assignment.");
     } finally {
@@ -24,37 +23,152 @@ export default function CreateAssignment() {
     }
   };
 
-  const inputStyle = {
-    display: "block", width: "100%", padding: "0.75rem 1rem",
-    marginBottom: "1.1rem", border: "1.5px solid #e2e8f0",
-    borderRadius: "10px", fontSize: "0.95rem", boxSizing: "border-box", background: "#f8fafc"
-  };
-
   return (
     <div>
       <Navbar />
       <div style={{ padding: "2rem", maxWidth: "600px", margin: "0 auto" }}>
-        <h2 style={{ marginBottom: "1.5rem" }}>📝 Create Assignment</h2>
-        {error && <div style={{ background: "#fee2e2", color: "#ffffff",fontWeight: "600", padding: "0.8rem", borderRadius: "8px", marginBottom: "1rem" }}>⚠️ {error}</div>}
+        {/* Back Button */}
+        <button
+          onClick={() => navigate("/mentor")}
+          style={{
+            marginBottom: "1.5rem",
+            padding: "0.6rem 1.2rem",
+            background: "#6366f1",
+            color: "#fff",
+            border: "none",
+            borderRadius: "8px",
+            cursor: "pointer",
+            fontWeight: "600",
+            fontSize: "0.95rem"
+          }}
+        >
+          ← Back
+        </button>
 
-        <form onSubmit={handleSubmit} style={{ background: "#fff", padding: "1.5rem", borderRadius: "12px", boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}>
-          <label style={{ fontWeight: "600", display: "block", marginBottom: "0.3rem" }}>Title</label>
-          <input style={inputStyle} placeholder="Assignment title" value={form.title}
-            onChange={(e) => setForm({ ...form, title: e.target.value })} required />
+        <h2 style={{ marginBottom: "1.5rem", fontSize: "1.8rem", fontWeight: "700", color: "#fff" }}>
+          📝 Create Assignment
+        </h2>
 
-          <label style={{ fontWeight: "600", display: "block", marginBottom: "0.3rem" }}>Description</label>
-          <textarea style={{ ...inputStyle, height: "110px", resize: "vertical" }}
-            placeholder="Assignment description" value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })} required />
+        {error && (
+          <div style={{
+            background: "#fee2e2",
+            color: "#991b1b",
+            padding: "0.8rem 1rem",
+            borderRadius: "8px",
+            marginBottom: "1rem",
+            fontWeight: "600"
+          }}>
+            ⚠️ {error}
+          </div>
+        )}
 
-          <label style={{ fontWeight: "600", display: "block", marginBottom: "0.3rem" }}>Deadline <span style={{ color: "#94a3b8", fontWeight: "400" }}>(optional)</span></label>
-          <input style={inputStyle} type="date" value={form.deadline}
-            onChange={(e) => setForm({ ...form, deadline: e.target.value })} />
+        <form onSubmit={handleSubmit} style={{
+          background: "#1e293b",
+          padding: "2rem",
+          borderRadius: "12px",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+          border: "1px solid #334155"
+        }}>
+          <label style={{ fontWeight: "600", display: "block", marginBottom: "0.5rem", color: "#cbd5e1" }}>
+            Title
+          </label>
+          <input
+            style={{
+              display: "block",
+              width: "100%",
+              padding: "0.75rem 1rem",
+              marginBottom: "1.5rem",
+              border: "1px solid #475569",
+              borderRadius: "8px",
+              fontSize: "0.95rem",
+              background: "#0f172a",
+              color: "#f1f5f9"
+            }}
+            placeholder="Assignment title"
+            value={form.title}
+            onChange={(e) => setForm({ ...form, title: e.target.value })}
+            required
+          />
 
-          <button type="submit" disabled={loading}
-            style={{ width: "100%", padding: "0.85rem", background: loading ? "#a5b4fc" : "#6366f1", color: "#fff", border: "none", borderRadius: "10px", fontSize: "1rem", fontWeight: "600", cursor: loading ? "not-allowed" : "pointer" }}>
-            {loading ? "Creating..." : "Create Assignment"}
-          </button>
+          <label style={{ fontWeight: "600", display: "block", marginBottom: "0.5rem", color: "#cbd5e1" }}>
+            Description
+          </label>
+          <textarea
+            style={{
+              display: "block",
+              width: "100%",
+              padding: "0.75rem 1rem",
+              marginBottom: "1.5rem",
+              border: "1px solid #475569",
+              borderRadius: "8px",
+              fontSize: "0.95rem",
+              background: "#0f172a",
+              color: "#f1f5f9",
+              minHeight: "120px",
+              resize: "vertical",
+              fontFamily: "inherit"
+            }}
+            placeholder="Assignment description"
+            value={form.description}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
+            required
+          />
+
+          <label style={{ fontWeight: "600", display: "block", marginBottom: "0.5rem", color: "#cbd5e1" }}>
+            Deadline (Optional)
+          </label>
+          <input
+            style={{
+              display: "block",
+              width: "100%",
+              padding: "0.75rem 1rem",
+              marginBottom: "2rem",
+              border: "1px solid #475569",
+              borderRadius: "8px",
+              fontSize: "0.95rem",
+              background: "#0f172a",
+              color: "#f1f5f9"
+            }}
+            type="date"
+            value={form.deadline}
+            onChange={(e) => setForm({ ...form, deadline: e.target.value })}
+          />
+
+          <div style={{ display: "flex", gap: "1rem" }}>
+            <button
+              type="button"
+              onClick={() => navigate("/mentor")}
+              style={{
+                flex: 1,
+                padding: "0.75rem",
+                background: "#475569",
+                color: "#f1f5f9",
+                border: "none",
+                borderRadius: "8px",
+                cursor: "pointer",
+                fontWeight: "600"
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                flex: 1,
+                padding: "0.75rem",
+                background: loading ? "#818cf8" : "#6366f1",
+                color: "#fff",
+                border: "none",
+                borderRadius: "8px",
+                cursor: loading ? "not-allowed" : "pointer",
+                fontWeight: "600",
+                opacity: loading ? 0.7 : 1
+              }}
+            >
+              {loading ? "Creating..." : "Create Assignment"}
+            </button>
+          </div>
         </form>
       </div>
     </div>
