@@ -6,15 +6,8 @@ export default function LandingPage() {
   const user = getCurrentUser();
 
   // If user logged in, redirect to dashboard
-  if (user) {
-    if (user.role === "mentor") {
-      navigate("/mentor");
-      return null;
-    } else if (user.role === "student") {
-      navigate("/student");
-      return null;
-    }
-  }
+  if (user?.role === "mentor") return <Navigate to="/mentor" replace />;
+  if (user?.role === "student") return <Navigate to="/student" replace />;
 
   return (
     <div style={{ background: "#0f172a", color: "#f1f5f9", minHeight: "100vh" }}>
@@ -344,28 +337,28 @@ export default function LandingPage() {
       </section>
 
       {/* FOOTER */}
-      <footer style={{
-        background: "#0f172a",
-        borderTop: "1px solid #334155",
-        padding: "2rem",
-        textAlign: "center",
-        color: "#94a3b8"
-      }}>
-        <div style={{ marginBottom: "1rem" }}>
-          <a href="#" style={{ color: "#6366f1", marginRight: "2rem", textDecoration: "none" }}>
-            About
-          </a>
-          <a href="#" style={{ color: "#6366f1", marginRight: "2rem", textDecoration: "none" }}>
-            Privacy
-          </a>
-          <a href="#" style={{ color: "#6366f1", textDecoration: "none" }}>
-            Contact
-          </a>
-        </div>
-        <p style={{ margin: "0" }}>
-          © 2024 AssignmentHub. All rights reserved.
-        </p>
-      </footer>
+<footer style={{
+  background: "#0f172a",
+  borderTop: "1px solid #334155",
+  padding: "2rem",
+  textAlign: "center",
+  color: "#94a3b8"
+}}>
+  <div style={{ marginBottom: "1rem" }}>
+    <a href="#about" style={{ color: "#6366f1", marginRight: "2rem", textDecoration: "none" }}>
+      About
+    </a>
+    <a href="/privacy" style={{ color: "#6366f1", marginRight: "2rem", textDecoration: "none" }}>
+      Privacy
+    </a>
+    <a href="mailto:support@assignmenthub.com" style={{ color: "#6366f1", textDecoration: "none" }}>
+      Contact
+    </a>
+  </div>
+  <p style={{ margin: "0" }}>
+    © 2024 AssignmentHub. All rights reserved.
+  </p>
+</footer>
     </div>
   );
 }

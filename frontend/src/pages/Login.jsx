@@ -93,8 +93,6 @@ export default function Login() {
   };
 
   const strengthColors = ["#ef4444", "#f97316", "#eab308", "#84cc16", "#22c55e"];
-  const strengthLabels = ["Weak", "Fair", "Good", "Strong", "Very Strong"];
-  const strengthEmojis = ["🔴", "🟠", "🟡", "🟢", "💚"];
 
   return (
     <div style={{

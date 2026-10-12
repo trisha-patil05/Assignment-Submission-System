@@ -134,7 +134,6 @@ export default function Register() {
   };
 
   const strengthColors = ["#ef4444", "#f97316", "#eab308", "#84cc16"];
-  const strengthLabels = ["Weak", "Fair", "Good", "Strong"];
 
   return (
     <div style={{
@@ -533,7 +532,7 @@ export default function Register() {
                 cursor: "pointer",
                 lineHeight: "1.3"
               }}>
-                I agree to <a href="#" style={{ color: "#6366f1", textDecoration: "none", fontWeight: "600" }}>Terms</a> & <a href="#" style={{ color: "#6366f1", textDecoration: "none", fontWeight: "600" }}>Privacy</a>
+              I agree to <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: "#6366f1", textDecoration: "none", fontWeight: "600" }}>Terms</a> & <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: "#6366f1", textDecoration: "none", fontWeight: "600" }}>Privacy</a>
               </label>
             </div>
 
