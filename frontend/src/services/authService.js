@@ -1,4 +1,3 @@
-// src/services/authService.js
 import api from "./api";
 
 const decodeToken = (token) => {
@@ -25,29 +24,34 @@ export const registerUser = async (data) => {
 
   localStorage.setItem("token", res.data.token);
   localStorage.setItem("currentUser", JSON.stringify(user));
+  localStorage.setItem("role", decoded.role);
+  return res.data;
 };
 
-export const loginUser = async (email, password) => {
-  const res = await api.post("/auth/login", { email, password });
+export const loginUser = async (data) => {
+  const res = await api.post("/auth/login", data);
   const decoded = decodeToken(res.data.token);
 
   const user = {
     id: decoded.id,
     _id: decoded.id,
     role: decoded.role,
-    email,
+    email: data.email,
   };
 
   localStorage.setItem("token", res.data.token);
   localStorage.setItem("currentUser", JSON.stringify(user));
-  return user;
+  localStorage.setItem("role", decoded.role);
+  return res.data;
 };
 
 export const getCurrentUser = () => {
   const user = localStorage.getItem("currentUser");
   return user ? JSON.parse(user) : null;
 };
+
 export const logoutUser = () => {
   localStorage.removeItem("token");
   localStorage.removeItem("currentUser");
+  localStorage.removeItem("role");
 };

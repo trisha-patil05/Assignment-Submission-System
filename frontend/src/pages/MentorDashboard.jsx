@@ -1,398 +1,506 @@
-// pages/MentorDashboard.jsx
 import { useEffect, useState } from "react";
-
 import { useNavigate } from "react-router-dom";
-import ReviewModal from "../components/ReviewModal";
 import { getAssignments } from "../services/assignmentService";
-import { getCurrentUser, logoutUser } from "../services/authService";
-import { getSubmissions } from "../services/submissionService";
+import { getCurrentUser } from "../services/authService";
+import { getSubmissions, markReviewed } from "../services/submissionService";
+import socket from "../socket";
 import Navbar from "./Navbar";
 
 export default function MentorDashboard() {
+  const navigate = useNavigate();
+  const user = getCurrentUser();
   const [assignments, setAssignments] = useState([]);
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeSection, setActiveSection] = useState("dashboard");
-  const [filter, setFilter] = useState("all");
-  const [search, setSearch] = useState("");
-  const [reviewingSubmission, setReviewingSubmission] = useState(null);
-  const navigate = useNavigate();
-  const user = getCurrentUser();
+  const [activeTab, setActiveTab] = useState("dashboard");
+  
+  // Filter state for submissions
+  const [subSearch, setSubSearch] = useState("");
+  const [subStatus, setSubStatus] = useState("");
+  const [subSortBy, setSubSortBy] = useState("date");
+  const [subSortOrder, setSubSortOrder] = useState("desc");
 
-  const load = async () => {
+  // Filter state for assignments
+  const [assignSearch, setAssignSearch] = useState("");
+  const [assignSortBy, setAssignSortBy] = useState("date");
+  const [assignSortOrder, setAssignSortOrder] = useState("desc");
+
+  // Grading modal
+  const [selectedSubmission, setSelectedSubmission] = useState(null);
+  const [grade, setGrade] = useState("");
+  const [feedback, setFeedback] = useState("");
+  const [grading, setGrading] = useState(false);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [aData, sData] = await Promise.all([
+          getAssignments(),
+          getSubmissions(),
+        ]);
+        setAssignments(Array.isArray(aData) ? aData : []);
+        setSubmissions(Array.isArray(sData) ? sData : []);
+      } catch (err) {
+        console.error("❌ Load error:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  // Apply filters when criteria change
+  useEffect(() => {
+    const applyFilters = async () => {
+      try {
+        const filters = {};
+        if (subSearch) filters.search = subSearch;
+        if (subStatus) filters.status = subStatus;
+        filters.sortBy = subSortBy;
+        filters.sortOrder = subSortOrder;
+
+        const sData = await getSubmissions(filters);
+        setSubmissions(Array.isArray(sData) ? sData : []);
+      } catch (err) {
+        console.error("❌ Filter error:", err);
+      }
+    };
+
+    if (activeTab === "submissions") {
+      applyFilters();
+    }
+  }, [subSearch, subStatus, subSortBy, subSortOrder, activeTab]);
+
+  // Apply assignment filters
+  useEffect(() => {
+    const applyFilters = async () => {
+      try {
+        const filters = {};
+        if (assignSearch) filters.search = assignSearch;
+        filters.sortBy = assignSortBy;
+        filters.sortOrder = assignSortOrder;
+
+        const aData = await getAssignments(filters);
+        setAssignments(Array.isArray(aData) ? aData : []);
+      } catch (err) {
+        console.error("❌ Filter error:", err);
+      }
+    };
+
+    if (activeTab === "assignments") {
+      applyFilters();
+    }
+  }, [assignSearch, assignSortBy, assignSortOrder, activeTab]);
+
+  useEffect(() => {
+    if (!user) return;
+    const onNotification = (data) => {
+      console.log("🔔 Notification:", data);
+      if (data.type === "submission" || data.type === "resubmission") {
+        getSubmissions().then(sData => {
+          setSubmissions(Array.isArray(sData) ? sData : []);
+        });
+      }
+    };
+    socket.on("notification", onNotification);
+    return () => socket.off("notification", onNotification);
+  }, [user]);
+
+  const handleGrade = async (e) => {
+    e.preventDefault();
+    if (!grade || grade < 0 || grade > 100) {
+      alert("Please enter a grade between 0 and 100");
+      return;
+    }
+    setGrading(true);
     try {
-      const [aData, sData] = await Promise.all([
-        getAssignments(),
-        getSubmissions(),
-      ]);
-      // ✅ FIX: Proper array validation
-      setAssignments(Array.isArray(aData) ? aData : []);
-      setSubmissions(Array.isArray(sData) ? sData : []);
+      await markReviewed(selectedSubmission._id, grade, feedback);
+      setSubmissions(prev =>
+        prev.map(s =>
+          s._id === selectedSubmission._id
+            ? { ...s, status: "reviewed", grade: parseInt(grade), feedback }
+            : s
+        )
+      );
+      setSelectedSubmission(null);
+      setGrade("");
+      setFeedback("");
     } catch (err) {
-      console.error("❌ Failed to load data:", err);
-      setAssignments([]);
-      setSubmissions([]);
+      alert("Failed to grade submission");
     } finally {
-      setLoading(false);
+      setGrading(false);
     }
   };
 
-  useEffect(() => { load(); }, []);
-
-  // Attach submissions to their assignments
-  const assignmentsWithSubs = assignments.map((a) => ({
-    ...a,
-    submissions: submissions.filter(
-      (s) => s.assignmentId?._id === a._id || s.assignmentId === a._id
-    ),
-  }));
-
-  const filteredAssignments = assignmentsWithSubs.filter(a => {
-    const matchSearch = a.title.toLowerCase().includes(search.toLowerCase());
-    const subStatus = a.submissions.length === 0 ? "pending"
-      : a.submissions.every(s => s.status === "reviewed") ? "reviewed"
-      : "submitted";
-    const matchFilter = filter === "all" || subStatus === filter;
-    return matchSearch && matchFilter;
-  });
-
-  const total = assignments.length;
-  const withSubmissions = submissions.length;
-  const reviewed = submissions.filter(s => s.status === "reviewed").length;
-  const pending = submissions.filter(s => s.status === "submitted").length;
-  const lateSubmissions = submissions.filter(s => s.isLate && s.status !== "reviewed").length; // ← NEW
-
-  const getBadgeStyle = (status) => {
-    if (status === "reviewed") return { background: "#d1fae5", color: "#065f46" };
-    if (status === "submitted") return { background: "#dbeafe", color: "#1e40af" };
-    return { background: "#fef3c7", color: "#92400e" };
+  const stats = {
+    total: assignments.length,
+    submissions: submissions.length,
+    pending: submissions.filter(s => s.status === "submitted").length,
+    graded: submissions.filter(s => s.status === "reviewed").length,
   };
 
-  // ← NEW: Helper to format minutes late
-  const formatLateTime = (minutes) => {
-    if (minutes < 60) return `${minutes}min late`;
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return `${hours}h ${mins}min late`;
-  };
+  const filteredSubmissions = submissions;
+  const pendingSubmissions = submissions.filter(s => s.status === "submitted");
+
+  if (loading) return <div style={{ marginTop: "65px", padding: "2rem" }}>Loading...</div>;
 
   return (
     <div>
       <Navbar />
-      <div className="page-wrapper">
-
+      <div style={{ marginTop: "65px", display: "flex", minHeight: "calc(100vh - 65px)" }}>
         {/* Sidebar */}
-        <aside className="sidebar">
-          <div className="sidebar-section-label">MENU</div>
-
-          {[
-            { icon: "🏠", label: "Dashboard", key: "dashboard" },
-            { icon: "📚", label: "Assignments", key: "assignments" },
-            { icon: "📨", label: "Submissions", key: "submissions" },
-          ].map(item => (
-            <button key={item.key}
-              className={`sidebar-item ${activeSection === item.key ? "active" : ""}`}
-              onClick={() => setActiveSection(item.key)}>
-              <span className="icon">{item.icon}</span>
-              {item.label}
-              {item.key === "submissions" && pending > 0 && (
-                <span style={{ marginLeft: "auto", background: "#ef4444", color: "#fff", fontSize: "0.7rem", padding: "0.1rem 0.5rem", borderRadius: "10px" }}>
-                  {pending}
-                </span>
-              )}
-              {item.key === "submissions" && lateSubmissions > 0 && (
-                <span style={{ marginLeft: "4px", background: "#f97316", color: "#fff", fontSize: "0.7rem", padding: "0.1rem 0.5rem", borderRadius: "10px" }}>
-                  ⏰ {lateSubmissions}
+        <div className="sidebar">
+          <div className="sidebar-section-label">📊 Menu</div>
+          {["dashboard", "submissions", "assignments"].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`sidebar-item ${activeTab === tab ? "active" : ""}`}
+              style={{ position: "relative" }}
+            >
+              <span className="icon">
+                {tab === "dashboard" && "📊"}
+                {tab === "submissions" && "📤"}
+                {tab === "assignments" && "📚"}
+              </span>
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              {tab === "submissions" && pendingSubmissions.length > 0 && (
+                <span style={{
+                  position: "absolute",
+                  right: "0.5rem",
+                  background: "#ef4444",
+                  color: "#fff",
+                  width: "20px",
+                  height: "20px",
+                  borderRadius: "50%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "0.7rem",
+                  fontWeight: "700"
+                }}>
+                  {pendingSubmissions.length}
                 </span>
               )}
             </button>
           ))}
 
-          <div style={{ marginTop: "auto", paddingTop: "1.5rem", borderTop: "1px solid rgba(255,255,255,0.07)" }}>
-            <div className="sidebar-section-label">ACTIONS</div>
-            <button className="sidebar-item" onClick={() => navigate("/create-assignment")}>
-              <span className="icon">➕</span> New Assignment
-            </button>
-            <button className="sidebar-item" onClick={() => { logoutUser(); navigate("/login"); }}>
-              <span className="icon">🚪</span> Logout
-            </button>
-          </div>
-
-        </aside>
+          <div className="sidebar-section-label">➕ Actions</div>
+          <button
+            onClick={() => navigate("/mentor/create")}
+            className="sidebar-item"
+            style={{ background: "rgba(16,185,129,0.15)", color: "#34d399" }}
+          >
+            <span className="icon">➕</span>
+            Create Assignment
+          </button>
+        </div>
 
         {/* Main Content */}
-        <main className="main-content">
-
-          {/* ── DASHBOARD SECTION ── */}
-          {activeSection === "dashboard" && (
-            <>
-              <div className="page-header">
-                <div>
-                  <h1 className="page-title">👋 Welcome, {user?.email?.split("@")[0]}</h1>
-                  <p className="page-subtitle">Here's an overview of all assignments</p>
-                </div>
-                <button className="btn btn-primary" onClick={() => navigate("/mentor/create")}>
-                  + Create Assignment
-                </button>
-              </div>
-
-              {/* Stats */}
+        <div className="main-content">
+          {/* Dashboard Tab */}
+          {activeTab === "dashboard" && (
+            <div>
+              <h2>Welcome back, {user?.email}! 👋</h2>
               <div className="stats-grid">
-                {[
-                  { label: "Total Assignments", value: total, icon: "📚", bg: "#ede9fe", color: "#4f46e5" },
-                  { label: "Total Submissions", value: withSubmissions, icon: "📨", bg: "#dbeafe", color: "#3b82f6" },
-                  { label: "Pending Review", value: pending, icon: "⏳", bg: "#fef3c7", color: "#f59e0b" },
-                  { label: "Reviewed", value: reviewed, icon: "✅", bg: "#d1fae5", color: "#10b981" },
-                  // ← NEW: Late submissions stat
-                  ...(lateSubmissions > 0 ? [{ label: "Late Submissions", value: lateSubmissions, icon: "⏰", bg: "#fee2e2", color: "#ef4444" }] : []),
-                ].map(s => (
-                  <div key={s.label} className="stat-card">
-                    <div className="stat-icon" style={{ background: s.bg }}>{s.icon}</div>
-                    <div>
-                      <div className="stat-value" style={{ color: s.color }}>{s.value}</div>
-                      <div className="stat-label">{s.label}</div>
-                    </div>
+                <div className="stat-card">
+                  <div className="stat-icon">📚</div>
+                  <div>
+                    <div className="stat-value">{stats.total}</div>
+                    <div className="stat-label">Total Assignments</div>
                   </div>
-                ))}
-              </div>
-
-              {/* Search + Filter Bar */}
-              <div className="filter-bar">
-                <input
-                  className="search-input"
-                  placeholder="Search assignments..."
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                />
-                {["all", "pending", "submitted", "reviewed"].map(f => (
-                  <button key={f}
-                    className={`filter-btn ${filter === f ? "active" : ""}`}
-                    onClick={() => setFilter(f)}>
-                    {f.charAt(0).toUpperCase() + f.slice(1)}
-                  </button>
-                ))}
-              </div>
-
-              {/* Assignment Cards */}
-              {loading ? (
-                <div className="empty-state"><p>Loading...</p></div>
-              ) : filteredAssignments.length === 0 ? (
-                <div className="empty-state">
-                  <div className="empty-icon">📭</div>
-                  <p>No assignments found.</p>
                 </div>
-              ) : (
-                <div className="card-grid">
-                  {filteredAssignments.map(a => (
-                    <div key={a._id} className="assignment-card">
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1rem" }}>
-                        <h3 style={{ fontSize: "1.1rem", fontWeight: "700", margin: "0" }}>{a.title}</h3>
-                        <span style={{ background: "#ede9fe", color: "#4f46e5", padding: "0.2rem 0.8rem", borderRadius: "12px", fontSize: "0.8rem", fontWeight: "600", whiteSpace: "nowrap" }}>
-                          {a.submissions.length} {a.submissions.length === 1 ? "sub" : "subs"}
-                        </span>
-                      </div>
+                <div className="stat-card">
+                  <div className="stat-icon">📤</div>
+                  <div>
+                    <div className="stat-value">{stats.submissions}</div>
+                    <div className="stat-label">Total Submissions</div>
+                  </div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-icon">⏳</div>
+                  <div>
+                    <div className="stat-value">{stats.pending}</div>
+                    <div className="stat-label">Pending</div>
+                  </div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-icon">✅</div>
+                  <div>
+                    <div className="stat-value">{stats.graded}</div>
+                    <div className="stat-label">Graded</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
-                      <p style={{ color: "#6b7280", fontSize: "0.9rem", lineHeight: "1.4", marginBottom: "1rem" }}>{a.description}</p>
+          {/* Submissions Tab */}
+          {activeTab === "submissions" && (
+            <div>
+              <h2>📤 Student Submissions</h2>
+              
+              {/* Filters */}
+              <div style={{
+                display: "flex",
+                gap: "1rem",
+                marginBottom: "1.5rem",
+                flexWrap: "wrap",
+                alignItems: "center"
+              }}>
+                {/* Search */}
+                <input
+                  type="text"
+                  placeholder="🔍 Search student, email, or assignment..."
+                  value={subSearch}
+                  onChange={(e) => setSubSearch(e.target.value)}
+                  className="form-input"
+                  style={{ flex: 1, minWidth: "250px", marginBottom: 0 }}
+                />
 
+                {/* Status Filter */}
+                <select
+                  value={subStatus}
+                  onChange={(e) => setSubStatus(e.target.value)}
+                  className="form-input"
+                  style={{ padding: "0.5rem 1rem", marginBottom: 0 }}
+                >
+                  <option value="">All Status</option>
+                  <option value="submitted">⏳ Pending</option>
+                  <option value="reviewed">✅ Graded</option>
+                </select>
+
+                {/* Sort By */}
+                <select
+                  value={subSortBy}
+                  onChange={(e) => setSubSortBy(e.target.value)}
+                  className="form-input"
+                  style={{ padding: "0.5rem 1rem", marginBottom: 0 }}
+                >
+                  <option value="date">Sort by Date</option>
+                  <option value="studentName">Sort by Student</option>
+                  <option value="grade">Sort by Grade</option>
+                  <option value="status">Sort by Status</option>
+                </select>
+
+                {/* Sort Order */}
+                <select
+                  value={subSortOrder}
+                  onChange={(e) => setSubSortOrder(e.target.value)}
+                  className="form-input"
+                  style={{ padding: "0.5rem 1rem", marginBottom: 0 }}
+                >
+                  <option value="desc">Newest First</option>
+                  <option value="asc">Oldest First</option>
+                </select>
+              </div>
+
+              <div className="card">
+                {filteredSubmissions.length === 0 ? (
+                  <p style={{ textAlign: "center", color: "#cbd5e1" }}>No submissions found</p>
+                ) : (
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>Student</th>
+                        <th>Assignment</th>
+                        <th style={{ textAlign: "center" }}>Status</th>
+                        <th style={{ textAlign: "center" }}>Plagiarism</th>
+                        <th style={{ textAlign: "center" }}>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredSubmissions.map((s) => (
+                        <tr key={s._id} style={{
+                          background: s.isLate ? "rgba(245,158,11,0.1)" : "transparent"
+                        }}>
+                          <td>{s.studentId?.name || s.studentId?.email || "Unknown"}</td>
+                          <td>{s.assignmentId?.title || "Assignment"}</td>
+                          <td style={{ textAlign: "center" }}>
+                            <span className={`badge ${s.status === "reviewed" ? "badge-reviewed" : "badge-submitted"}`}>
+                              {s.status === "reviewed" ? "✅ Graded" : "⏳ Pending"}
+                            </span>
+                          </td>
+                          <td style={{ textAlign: "center" }}>
+                            {s.plagiarismScore ? (
+                              <span className={`badge ${s.plagiarismScore > 60 ? "badge-danger" : s.plagiarismScore > 30 ? "badge-warning" : "badge-success"}`}>
+                                🔍 {s.plagiarismScore}%
+                              </span>
+                            ) : (
+                              <span style={{ color: "#94a3b8" }}>-</span>
+                            )}
+                          </td>
+                          <td style={{ textAlign: "center" }}>
+                            {s.status !== "reviewed" ? (
+                              <button
+                                onClick={() => setSelectedSubmission(s)}
+                                className="btn btn-primary btn-sm"
+                              >
+                                Grade
+                              </button>
+                            ) : (
+                              <span style={{ color: "#10b981", fontWeight: "600" }}>{s.grade}/100</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Assignments Tab */}
+          {activeTab === "assignments" && (
+            <div>
+              <h2>📚 Your Assignments</h2>
+
+              {/* Assignment Filters */}
+              <div style={{
+                display: "flex",
+                gap: "1rem",
+                marginBottom: "1.5rem",
+                flexWrap: "wrap",
+                alignItems: "center"
+              }}>
+                <input
+                  type="text"
+                  placeholder="🔍 Search assignment..."
+                  value={assignSearch}
+                  onChange={(e) => setAssignSearch(e.target.value)}
+                  className="form-input"
+                  style={{ flex: 1, minWidth: "250px", marginBottom: 0 }}
+                />
+
+                <select
+                  value={assignSortBy}
+                  onChange={(e) => setAssignSortBy(e.target.value)}
+                  className="form-input"
+                  style={{ padding: "0.5rem 1rem", marginBottom: 0 }}
+                >
+                  <option value="date">Sort by Date</option>
+                  <option value="title">Sort by Title</option>
+                  <option value="deadline">Sort by Deadline</option>
+                </select>
+
+                <select
+                  value={assignSortOrder}
+                  onChange={(e) => setAssignSortOrder(e.target.value)}
+                  className="form-input"
+                  style={{ padding: "0.5rem 1rem", marginBottom: 0 }}
+                >
+                  <option value="desc">Newest First</option>
+                  <option value="asc">Oldest First</option>
+                </select>
+              </div>
+
+              <div className="assignments-grid">
+                {assignments.map((a) => {
+                  const count = submissions.filter(s => s.assignmentId === a._id).length;
+                  return (
+                    <div key={a._id} className="assignment-card submitted">
+                      <h3 className="assignment-title">{a.title}</h3>
+                      <p className="assignment-desc">{a.description}</p>
                       {a.deadline && (
-                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", color: "#9ca3af", fontSize: "0.85rem", marginBottom: "1rem" }}>
-                          📅 {new Date(a.deadline).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                        <div style={{ color: "#6366f1", fontSize: "0.85rem", marginBottom: "1rem" }}>
+                          📅 {new Date(a.deadline).toLocaleDateString()}
                         </div>
                       )}
-
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem", fontSize: "0.82rem", marginTop: "1rem", paddingTop: "1rem", borderTop: "1px solid #f3f4f6" }}>
-                        <div>
-                          <span style={{ color: "#9ca3af" }}>Pending: </span>
-                          <span style={{ fontWeight: "700", color: "#f59e0b" }}>{a.submissions.filter(s => s.status === "submitted").length}</span>
-                        </div>
-                        <div>
-                          <span style={{ color: "#9ca3af" }}>Reviewed: </span>
-                          <span style={{ fontWeight: "700", color: "#10b981" }}>{a.submissions.filter(s => s.status === "reviewed").length}</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </>
-          )}
-
-          {/* ── SUBMISSIONS SECTION ── */}
-          {activeSection === "submissions" && (
-            <>
-              <div className="page-header">
-                <div>
-                  <h1 className="page-title">📨 All Submissions</h1>
-                  <p className="page-subtitle">Review and grade student work</p>
-                </div>
-              </div>
-
-              {loading ? (
-                <div className="empty-state"><p>Loading...</p></div>
-              ) : (
-                <div className="data-table">
-                  <div className="table-header">
-                    <h2>All Submissions</h2>
-                    <span style={{ background: "#ede9fe", color: "#4f46e5", padding: "0.2rem 0.8rem", borderRadius: "20px", fontSize: "0.85rem", fontWeight: "600" }}>
-                      {submissions.length} total
-                    </span>
-                  </div>
-
-                  {/* ← NEW: Sort with late submissions first */}
-                  {[...submissions]
-                    .sort((a, b) => {
-                      // Late submissions first
-                      if (b.isLate !== a.isLate) return b.isLate ? 1 : -1;
-                      // Then pending reviews
-                      if (b.status !== a.status) return b.status === "submitted" ? 1 : -1;
-                      // Then by submission time
-                      return new Date(b.submittedAt) - new Date(a.submittedAt);
-                    })
-                    .map((s, i) => (
-                      <div key={s._id} className="table-row" style={{
-                        background: s.isLate && s.status !== "reviewed" ? "rgba(239, 68, 68, 0.05)" : "transparent",
-                        borderLeft: s.isLate && s.status !== "reviewed" ? "4px solid #ef4444" : "4px solid transparent",
+                      <div style={{
+                        background: "rgba(99,102,241,0.1)",
+                        padding: "0.75rem",
+                        borderRadius: "8px",
+                        textAlign: "center",
+                        fontSize: "0.85rem",
+                        fontWeight: "600",
+                        color: "#818cf8"
                       }}>
-                        <div style={{ flex: 1 }}>
-                          {/* Assignment name */}
-                          <p style={{ fontWeight: "600", fontSize: "0.92rem" }}>
-                            📚 {s.assignmentId?.title || "Assignment"}
-                          </p>
-                          {/* Student */}
-                          <p style={{ color: "#6b7280", fontSize: "0.85rem", marginTop: "0.2rem" }}>
-                            👤 {s.studentId?.name || s.studentId?.email || "Student"}
-                          </p>
-                          {/* Answer */}
-                          {s.content && (
-                            <p style={{ color: "#9ca3af", fontSize: "0.82rem", marginTop: "0.2rem", fontStyle: "italic" }}>
-                              "{s.content?.slice(0, 80)}{s.content?.length > 80 ? "..." : ""}"
-                            </p>
-                          )}
-                          {/* Files */}
-                          {s.files?.length > 0 && (
-                            <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap", marginTop: "0.4rem" }}>
-                              {s.files.map((file, idx) => {
-                                const isImage = file.match(/\.(jpg|jpeg|png|webp)/i);
-                                const isVideo = file.match(/\.(mp4|mov|avi)/i);
-                                const label = isImage ? "🖼️ Image" : isVideo ? "🎥 Video" : "📄 File";
-                                return (
-                                  <div key={`files-${idx}`}>
-                                    <a href={file} target="_blank" rel="noreferrer"
-                                      style={{ fontSize: "0.8rem", color: "#4f46e5", background: "#ede9fe",
-                                        padding: "0.2rem 0.6rem", borderRadius: "8px", textDecoration: "none" }}>
-                                      {label}{s.files.length > 1 ? ` ${idx + 1}` : ""}
-                                    </a>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          )}
-
-                          {/* ← NEW: Show late indicator */}
-                          <div style={{ display: "flex", gap: "8px", marginTop: "0.6rem", alignItems: "center", flexWrap: "wrap" }}>
-                            <p style={{ color: "#d1d5db", fontSize: "0.78rem", margin: "0" }}>
-                              🕐 {new Date(s.submittedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
-                            </p>
-                            {s.isLate && (
-                              <span style={{
-                                fontSize: "0.75rem", fontWeight: "600", padding: "2px 8px",
-                                background: "#fee2e2", color: "#991b1b", borderRadius: "6px"
-                              }}>
-                                ⏰ {formatLateTime(s.minutesLate)}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Right side — grade or button */}
-                        <div style={{ marginLeft: "1rem", textAlign: "right", minWidth: "120px" }}>
-                          <span className="badge" style={{ ...getBadgeStyle(s.status), display: "inline-block", marginBottom: "0.5rem" }}>
-                            {s.status}
-                          </span>
-
-                          {s.status === "reviewed" ? (
-                            <div>
-                              <p style={{
-                                fontSize: "1.4rem", fontWeight: "700",
-                                color: s.grade >= 80 ? "#10b981" : s.grade >= 60 ? "#f59e0b" : "#ef4444"
-                              }}>
-                                {s.grade}/100
-                              </p>
-                              {s.feedback && (
-                                <p style={{ fontSize: "0.78rem", color: "#6b7280", fontStyle: "italic", maxWidth: "150px" }}>
-                                  💬 {s.feedback?.slice(0, 50)}...
-                                </p>
-                              )}
-                            </div>
-                          ) : (
-                            <button className="btn btn-primary btn-sm"
-                              onClick={() => setReviewingSubmission(s)}>
-                              📝 Grade
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              )}
-            </>
-          )}
-
-          {/* ── ASSIGNMENTS SECTION ── */}
-          {activeSection === "assignments" && (
-            <>
-              <div className="page-header">
-                <div>
-                  <h1 className="page-title">📚 All Assignments</h1>
-                  <p className="page-subtitle">Manage your created assignments</p>
-                </div>
-                <button className="btn btn-primary" onClick={() => navigate("/create-assignment")}>
-                  + Create Assignment
-                </button>
-              </div>
-
-              <div className="data-table">
-                <div className="table-header">
-                  <h2>Assignments</h2>
-                  <span style={{ background: "#ede9fe", color: "#4f46e5", padding: "0.2rem 0.8rem", borderRadius: "20px", fontSize: "0.85rem", fontWeight: "600" }}>
-                    {assignments.length} total
-                  </span>
-                </div>
-
-                {assignments.map((a) => {
-                  const subs = submissions.filter(s => s.assignmentId?._id === a._id || s.assignmentId === a._id);
-                  return (
-                    <div key={a._id} className="table-row">
-                      <div style={{ flex: 1 }}>
-                        <p style={{ fontWeight: "600" }}>{a.title}</p>
-                        <p style={{ color: "#6b7280", fontSize: "0.85rem", marginTop: "0.2rem" }}>{a.description}</p>
-                        {a.deadline && (
-                          <p style={{ color: "#9ca3af", fontSize: "0.8rem", marginTop: "0.2rem" }}>
-                            📅 {new Date(a.deadline).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
-                          </p>
-                        )}
-                      </div>
-                      <div style={{ textAlign: "right" }}>
-                        <span style={{ background: "#f3f4f6", color: "#374151", padding: "0.2rem 0.8rem", borderRadius: "20px", fontSize: "0.82rem" }}>
-                          {subs.length} submissions
-                        </span>
+                        📤 {count} submission{count !== 1 ? "s" : ""}
                       </div>
                     </div>
                   );
                 })}
               </div>
-            </>
+            </div>
           )}
-        </main>
+        </div>
       </div>
 
-      {/* Review Modal */}
-      {reviewingSubmission && (
-        <ReviewModal
-          submission={reviewingSubmission}
-          onClose={() => setReviewingSubmission(null)}
-          onSuccess={load}
-        />
+      {/* Grade Modal */}
+      {selectedSubmission && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: "rgba(0,0,0,0.7)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 1000
+        }}>
+          <div className="card" style={{ maxWidth: "500px", width: "90%" }}>
+            <h3 style={{ marginBottom: "1.5rem" }}>Grade Submission</h3>
+
+            <p style={{ color: "#cbd5e1", marginBottom: "1rem" }}>
+              <strong>Student:</strong> {selectedSubmission.studentId?.name || selectedSubmission.studentId?.email}
+            </p>
+            <p style={{ color: "#cbd5e1", marginBottom: "1.5rem" }}>
+              <strong>Assignment:</strong> {selectedSubmission.assignmentId?.title}
+            </p>
+
+            <form onSubmit={handleGrade}>
+              <div className="form-group">
+                <label className="form-label">Grade (0-100) *</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  className="form-input"
+                  placeholder="e.g., 85"
+                  value={grade}
+                  onChange={(e) => setGrade(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Feedback</label>
+                <textarea
+                  className="form-textarea"
+                  placeholder="Optional feedback for the student..."
+                  value={feedback}
+                  onChange={(e) => setFeedback(e.target.value)}
+                />
+              </div>
+
+              <div style={{ display: "flex", gap: "1rem" }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedSubmission(null);
+                    setGrade("");
+                    setFeedback("");
+                  }}
+                  className="btn btn-secondary"
+                  style={{ flex: 1 }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={grading}
+                  className="btn btn-primary"
+                  style={{ flex: 1 }}
+                >
+                  {grading ? "Grading..." : "Submit Grade"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -1,473 +1,326 @@
-// pages/StudentDashboard.jsx
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { io } from "socket.io-client";
 import { getAssignments } from "../services/assignmentService";
-import { getCurrentUser, logoutUser } from "../services/authService";
-import { updateProfile, uploadProfileImage } from "../services/profileupload";
+import { getCurrentUser } from "../services/authService";
 import { getMySubmissions } from "../services/submissionService";
-
+import socket from "../socket";
 import Navbar from "./Navbar";
 
 export default function StudentDashboard() {
   const navigate = useNavigate();
-const user = getCurrentUser(); // ✅ must be here FIRST
+  const user = getCurrentUser();
+  const [assignments, setAssignments] = useState([]);
+  const [submissions, setSubmissions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("dashboard");
 
-const [assignments, setAssignments] = useState([]);
-const [submissions, setSubmissions] = useState([]);
-const [loading, setLoading] = useState(true);
-const [activeSection, setActiveSection] = useState("dashboard");
-const [filter, setFilter] = useState("all");
-const [search, setSearch] = useState("");
-const [profileImage, setProfileImage] = useState(user?.profileImage || ""); // ✅ now user exists
-const [uploading, setUploading] = useState(false);// ✅ now user exists
+  // Filter state for assignments
+  const [assignSearch, setAssignSearch] = useState("");
+  const [assignSortBy, setAssignSortBy] = useState("date");
+  const [assignSortOrder, setAssignSortOrder] = useState("desc");
 
+  // Filter state for submissions/grades
+  const [subSearch, setSubSearch] = useState("");
+  const [subSortBy, setSubSortBy] = useState("date");
+  const [subSortOrder, setSubSortOrder] = useState("desc");
 
   useEffect(() => {
-  const load = async () => {
-  try {
-    const [aData, sData] = await Promise.all([
-      getAssignments(),
-      getMySubmissions(),
-    ]);
-
-    console.log("Assignments:", aData);
-    console.log("Assignments Array?", Array.isArray(aData));
-
-    console.log("Submissions:", sData);
-    console.log("Submissions Array?", Array.isArray(sData));
-
-    setAssignments(Array.isArray(aData) ? aData : []);
-    setSubmissions(Array.isArray(sData) ? sData : []);
-  } catch (err) {
-    console.error(err);
-  } finally {
-    setLoading(false);
-  }
-};
+    const load = async () => {
+      try {
+        const [aData, sData] = await Promise.all([
+          getAssignments(),
+          getMySubmissions(),
+        ]);
+        setAssignments(Array.isArray(aData) ? aData : []);
+        setSubmissions(Array.isArray(sData) ? sData : []);
+      } catch (err) {
+        console.error("❌ Load error:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
     load();
   }, []);
-  // ← NAYA: Socket.io notification listener
+
+  // Apply assignment filters
   useEffect(() => {
-    const socket = io("https://assignment-submission-system-utbj.onrender.com");
-    
-    socket.on("connect", () => {
-      console.log("✅ Socket connected:", socket.id);
-      socket.emit("join", { userId: user._id, role: user.role });
-    });
+    const applyFilters = async () => {
+      try {
+        const filters = {};
+        if (assignSearch) filters.search = assignSearch;
+        filters.sortBy = assignSortBy;
+        filters.sortOrder = assignSortOrder;
 
-   socket.on("notification", (data) => {
-  console.log("🔔 Notification:", data);
-  
-  if (data.type === "assignment") {
-    // Assignments refresh karo - page reload nahi
-    getAssignments().then(aData => {
-      setAssignments(aData);
-      console.log("✅ Assignments updated");
-    });
-  }
-});
+        const aData = await getAssignments(filters);
+        setAssignments(Array.isArray(aData) ? aData : []);
+      } catch (err) {
+        console.error("❌ Filter error:", err);
+      }
+    };
 
-    socket.on("disconnect", () => {
-      console.log("❌ Socket disconnected");
-    });
+    if (activeTab === "assignments") {
+      applyFilters();
+    }
+  }, [assignSearch, assignSortBy, assignSortOrder, activeTab]);
 
-    return () => socket.disconnect();
+  // Apply submission filters
+  useEffect(() => {
+    const applyFilters = async () => {
+      try {
+        const filters = {};
+        if (subSearch) filters.search = subSearch;
+        filters.sortBy = subSortBy;
+        filters.sortOrder = subSortOrder;
+
+        const sData = await getMySubmissions(filters);
+        setSubmissions(Array.isArray(sData) ? sData : []);
+      } catch (err) {
+        console.error("❌ Filter error:", err);
+      }
+    };
+
+    if (activeTab === "grades") {
+      applyFilters();
+    }
+  }, [subSearch, subSortBy, subSortOrder, activeTab]);
+
+  useEffect(() => {
+    if (!user) return;
+    const onNotification = (data) => {
+      console.log("🔔 Notification:", data);
+      if (data.type === "assignment") {
+        getAssignments().then(aData => {
+          setAssignments(Array.isArray(aData) ? aData : []);
+        });
+      }
+    };
+    socket.on("notification", onNotification);
+    return () => socket.off("notification", onNotification);
   }, [user]);
 
-  // Find my submission for a given assignment
   const mySubmission = (assignmentId) =>
     submissions.find(s =>
       s.assignmentId?._id === assignmentId || s.assignmentId === assignmentId
     );
 
-    const filteredAssignments = assignments.filter(a => {
-  const sub = mySubmission(a._id);
-  const status = sub?.status || "pending";
-  const matchSearch = a.title.toLowerCase().includes(search.toLowerCase());
-  const matchFilter = filter === "all" || status === filter;
-  return matchSearch && matchFilter;
-});
-
-
-  const pending = assignments.filter(a => !mySubmission(a._id)).length;
-  const submitted = submissions.filter(s => s.status === "submitted").length;
-  const reviewed = submissions.filter(s => s.status === "reviewed").length;
-
-  const getGradeColor = (grade) => {
-    if (grade >= 80) return "#10b981";
-    if (grade >= 60) return "#f59e0b";
-    return "#ef4444";
+  const stats = {
+    total: assignments.length,
+    pending: assignments.filter(a => !mySubmission(a._id)).length,
+    submitted: submissions.filter(s => s.status === "submitted").length,
+    reviewed: submissions.filter(s => s.status === "reviewed").length,
   };
-   
-  const handleImageUpload = async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  setUploading(true);
-  try {
-    const url = await uploadProfileImage(file);
-    setProfileImage(url);
-    await updateProfile({ profileImage: url, name: user?.email?.split("@")[0] });
-  } finally {
-    setUploading(false);
-  }
-};
 
+  const filteredGrades = submissions.filter(s => s.status === "reviewed");
 
-  const getBadgeStyle = (status) => {
-    if (status === "reviewed") return { background: "#d1fae5", color: "#065f46" };
-    if (status === "submitted") return { background: "#dbeafe", color: "#1e40af" };
-    return { background: "#fef3c7", color: "#92400e" };
-  };
+  if (loading) return <div style={{ marginTop: "65px", padding: "2rem" }}>Loading...</div>;
 
   return (
     <div>
       <Navbar />
-      <div className="page-wrapper">
-
+      <div style={{ marginTop: "65px", display: "flex", minHeight: "calc(100vh - 65px)" }}>
         {/* Sidebar */}
-        <aside className="sidebar">
-          <div style={{ color: "#818cf8", fontSize: "0.75rem", fontWeight: "700", letterSpacing: "1px", marginBottom: "1rem", padding: "0 0.5rem" }}>
-            MENU
-          </div>
-          {[
-            { icon: "🏠", label: "Dashboard", key: "dashboard" },
-            { icon: "📖", label: "Assignments", key: "assignments" },
-            { icon: "📊", label: "My Grades", key: "grades" },
-            { icon: "👤", label: "Profile", key: "profile" },
-
-          ].map(item => (
-            <button key={item.key}
-              className={`sidebar-item ${activeSection === item.key ? "active" : ""}`}
-              onClick={() => setActiveSection(item.key)}>
-              <span className="icon">{item.icon}</span>
-              {item.label}
+        <div className="sidebar">
+          <div className="sidebar-section-label">📊 Menu</div>
+          {["dashboard", "assignments", "grades"].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`sidebar-item ${activeTab === tab ? "active" : ""}`}
+            >
+              <span className="icon">
+                {tab === "dashboard" && "📊"}
+                {tab === "assignments" && "📚"}
+                {tab === "grades" && "⭐"}
+              </span>
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
             </button>
           ))}
-
-          <div style={{ marginTop: "auto", paddingTop: "2rem", borderTop: "1px solid rgba(255,255,255,0.1)" }}>
-            <button className="sidebar-item" onClick={() => { logoutUser(); navigate("/login"); }}>
-              <span className="icon">🚪</span> Logout
-            </button>
-          </div>
-        </aside>
+        </div>
 
         {/* Main Content */}
-        <main className="main-content">
-
-          {/* ── DASHBOARD SECTION ── */}
-          {activeSection === "dashboard" && (
-            <>
-              <div className="page-header">
-                <div>
-                  <h1 className="page-title">👋 Welcome, {user?.email?.split("@")[0]}</h1>
-                  <p className="page-subtitle">Track and submit your assignments</p>
-                </div>
-              </div>
-
-              {/* Stats */}
+        <div className="main-content">
+          {/* Dashboard Tab */}
+          {activeTab === "dashboard" && (
+            <div>
+              <h2>Welcome back, {user?.email}! 👋</h2>
               <div className="stats-grid">
-                {[
-                  { label: "Total", value: assignments.length, icon: "📚", bg: "#ede9fe", color: "#4f46e5" },
-                  { label: "Pending", value: pending, icon: "⏳", bg: "#fef3c7", color: "#f59e0b" },
-                  { label: "Submitted", value: submitted, icon: "📤", bg: "#dbeafe", color: "#3b82f6" },
-                  { label: "Reviewed", value: reviewed, icon: "✅", bg: "#d1fae5", color: "#10b981" },
-                ].map(s => (
-                  <div key={s.label} className="stat-card">
-                    <div className="stat-icon" style={{ background: s.bg }}>{s.icon}</div>
-                    <div>
-                      <div className="stat-value" style={{ color: s.color }}>{s.value}</div>
-                      <div className="stat-label">{s.label}</div>
-                    </div>
+                <div className="stat-card">
+                  <div className="stat-icon">📚</div>
+                  <div>
+                    <div className="stat-value">{stats.total}</div>
+                    <div className="stat-label">Total</div>
                   </div>
-                ))}
+                </div>
+                <div className="stat-card">
+                  <div className="stat-icon">⏳</div>
+                  <div>
+                    <div className="stat-value">{stats.pending}</div>
+                    <div className="stat-label">Pending</div>
+                  </div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-icon">📤</div>
+                  <div>
+                    <div className="stat-value">{stats.submitted}</div>
+                    <div className="stat-label">Submitted</div>
+                  </div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-icon">✅</div>
+                  <div>
+                    <div className="stat-value">{stats.reviewed}</div>
+                    <div className="stat-label">Graded</div>
+                  </div>
+                </div>
               </div>
-
-              {/* Assignment Cards */}
-              {loading ? (
-                <div className="empty-state"><p>Loading...</p></div>
-              ) : assignments.length === 0 ? (
-                <div className="empty-state">
-                  <div className="empty-icon">📭</div>
-                  <p>No assignments available yet.</p>
-                </div>
-              ) : (
-                <>
-<div className="filter-bar">
-  <input
-    className="search-input"
-    placeholder="Search assignments..."
-    value={search}
-    onChange={e => setSearch(e.target.value)}
-  />
-  {["all", "pending", "submitted", "reviewed"].map(f => (
-    <button
-      key={f}
-      className={`filter-btn ${filter === f ? "active" : ""}`}
-      onClick={() => setFilter(f)}
-    >
-      {f.charAt(0).toUpperCase() + f.slice(1)}
-    </button>
-  ))}
-</div>
-
-
-           
-
-                <div className="assignments-grid">
-                  {filteredAssignments.map(a => {
-                    const sub = mySubmission(a._id);
-                    const status = sub?.status || "pending";
-                    return (
-                      <div key={a._id} className={`assignment-card ${status}`}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                          <h3 className="assignment-title">{a.title}</h3>
-                          <span className="badge" style={getBadgeStyle(status)}>
-                            {status.charAt(0).toUpperCase() + status.slice(1)}
-                          </span>
-                        </div>
-                        <p className="assignment-desc">{a.description}</p>
-                        {a.deadline && (
-                          <p style={{ fontSize: "0.82rem", color: "#9ca3af", marginBottom: "0.8rem" }}>
-                            📅 {new Date(a.deadline).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
-                          </p>
-                          
-                        )}
-
-                        {/* Grade display if reviewed */}
-                        {sub?.status === "reviewed" && (
-                          <div style={{ background: "#f0fdf4", borderRadius: "10px", padding: "0.8rem", marginBottom: "0.8rem", border: "1px solid #bbf7d0" }}>
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                              <span style={{ fontWeight: "600", color: "#065f46", fontSize: "0.85rem" }}>Your Grade</span>
-                              <span style={{ fontSize: "1.3rem", fontWeight: "700", color: getGradeColor(sub.grade) }}>
-                                {sub.grade}/100
-                              </span>
-                            </div>
-                            {/* Grade bar */}
-                            <div style={{ height: "6px", background: "#e5e7eb", borderRadius: "10px", marginTop: "0.5rem", overflow: "hidden" }}>
-                              <div style={{ width: `${sub.grade}%`, height: "100%", background: getGradeColor(sub.grade), borderRadius: "10px" }} />
-                            </div>
-                            {sub.feedback && (
-                              <p style={{ marginTop: "0.5rem", color: "#374151", fontSize: "0.82rem", fontStyle: "italic" }}>
-                                💬 "{sub.feedback}"
-                              </p>
-                            )}
-                          </div>
-                          
-                        )}
-
-  <div className="assignment-meta">
-  {!sub ? (
-    (() => {
-      const deadlinePassed = a.deadline && new Date() > new Date(a.deadline);
-      return deadlinePassed ? (
-        <div>
-          <span style={{
-            background: "#fee2e2", color: "#991b1b",
-            padding: "0.4rem 0.9rem", borderRadius: "8px",
-            fontSize: "0.85rem", fontWeight: "600"
-          }}>
-            ⛔ Deadline Passed
-          </span>
-          <p style={{ color: "#9ca3af", fontSize: "0.78rem", marginTop: "0.3rem" }}>
-            Was due {new Date(a.deadline).toLocaleDateString("en-IN", {
-              day: "numeric", month: "short", year: "numeric"
-            })}
-          </p>
-        </div>
-      ) : (
-        <button className="btn btn-primary btn-sm"
-          onClick={() => navigate(`/student/submit/${a._id}`)}>
-          📤 Submit Assignment
-        </button>
-      );
-    })()
-  ) : (
-    <span style={{ color: "#10b981", fontWeight: "600", fontSize: "0.88rem" }}>
-      ✅ Submitted
-    </span>
-  )}
-</div>
-
-                      </div>
-                    );
-                  })}
-                </div>
-                </>
-              )}
-            </>
+            </div>
           )}
 
-          {/* ── ASSIGNMENTS SECTION ── */}
-          {activeSection === "assignments" && (
-            <>
-              <div className="page-header">
-                <div>
-                  <h1 className="page-title">📖 My Assignments</h1>
-                  <p className="page-subtitle">All assignments assigned to you</p>
-                </div>
+          {/* Assignments Tab */}
+          {activeTab === "assignments" && (
+            <div>
+              <h2>📚 Assignments</h2>
+
+              {/* Filters */}
+              <div style={{
+                display: "flex",
+                gap: "1rem",
+                marginBottom: "1.5rem",
+                flexWrap: "wrap",
+                alignItems: "center"
+              }}>
+                <input
+                  type="text"
+                  placeholder="🔍 Search assignment..."
+                  value={assignSearch}
+                  onChange={(e) => setAssignSearch(e.target.value)}
+                  className="form-input"
+                  style={{ flex: 1, minWidth: "250px", marginBottom: 0 }}
+                />
+
+                <select
+                  value={assignSortBy}
+                  onChange={(e) => setAssignSortBy(e.target.value)}
+                  className="form-input"
+                  style={{ padding: "0.5rem 1rem", marginBottom: 0 }}
+                >
+                  <option value="date">Sort by Date</option>
+                  <option value="title">Sort by Title</option>
+                  <option value="deadline">Sort by Deadline</option>
+                </select>
+
+                <select
+                  value={assignSortOrder}
+                  onChange={(e) => setAssignSortOrder(e.target.value)}
+                  className="form-input"
+                  style={{ padding: "0.5rem 1rem", marginBottom: 0 }}
+                >
+                  <option value="desc">Newest First</option>
+                  <option value="asc">Oldest First</option>
+                </select>
               </div>
 
-              <div className="data-table">
-                <div className="table-header">
-                  <h2>Assignments</h2>
-                </div>
-                {assignments.map(a => {
+              <div className="assignments-grid">
+                {assignments.map((a) => {
                   const sub = mySubmission(a._id);
                   return (
-                    <div key={a._id} className="table-row">
-                      <div style={{ flex: 1 }}>
-                        <p style={{ fontWeight: "600" }}>{a.title}</p>
-                        <p style={{ color: "#6b7280", fontSize: "0.85rem", marginTop: "0.2rem" }}>{a.description}</p>
-                        {a.deadline && (
-                          <p style={{ color: "#9ca3af", fontSize: "0.8rem", marginTop: "0.2rem" }}>
-                            📅 {new Date(a.deadline).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
-                          </p>
-                        )}
-                      </div>
-                      <div style={{ textAlign: "right" }}>
-                        {!sub ? (
-                          <button className="btn btn-primary btn-sm"
-                            onClick={() => navigate(`/student/submit/${a._id}`)}>
-                            📤 Submit
-                          </button>
-                        ) : (
-                          <span className="badge" style={getBadgeStyle(sub.status)}>
-                            {sub.status}
-                          </span>
-                        )}
-                      </div>
+                    <div key={a._id} className={`assignment-card ${sub?.status || "pending"}`}>
+                      <h3 className="assignment-title">{a.title}</h3>
+                      <p className="assignment-desc">{a.description}</p>
+                      {a.deadline && (
+                        <div style={{ color: "#6366f1", fontSize: "0.85rem", marginBottom: "1rem" }}>
+                          📅 {new Date(a.deadline).toLocaleDateString()}
+                        </div>
+                      )}
+                      <span className={`badge ${sub ? "badge-submitted" : "badge-pending"}`}>
+                        {sub ? "✅ Submitted" : "⏳ Pending"}
+                      </span>
+                      <button
+                        onClick={() => navigate(`/student/submit/${a._id}`)}
+                        className="btn btn-primary"
+                        style={{ width: "100%", marginTop: "1rem" }}
+                      >
+                        {sub ? "Resubmit" : "Submit"}
+                      </button>
                     </div>
                   );
                 })}
               </div>
-            </>
+            </div>
           )}
 
-          {/* ── GRADES SECTION ── */}
-          {activeSection === "grades" && (
-            <>
-              <div className="page-header">
-                <div>
-                  <h1 className="page-title">📊 My Grades</h1>
-                  <p className="page-subtitle">Your performance overview</p>
-                </div>
+          {/* Grades Tab */}
+          {activeTab === "grades" && (
+            <div>
+              <h2>⭐ Grades & Feedback</h2>
+
+              {/* Filters */}
+              <div style={{
+                display: "flex",
+                gap: "1rem",
+                marginBottom: "1.5rem",
+                flexWrap: "wrap",
+                alignItems: "center"
+              }}>
+                <input
+                  type="text"
+                  placeholder="🔍 Search assignment..."
+                  value={subSearch}
+                  onChange={(e) => setSubSearch(e.target.value)}
+                  className="form-input"
+                  style={{ flex: 1, minWidth: "250px", marginBottom: 0 }}
+                />
+
+                <select
+                  value={subSortBy}
+                  onChange={(e) => setSubSortBy(e.target.value)}
+                  className="form-input"
+                  style={{ padding: "0.5rem 1rem", marginBottom: 0 }}
+                >
+                  <option value="date">Sort by Date</option>
+                  <option value="title">Sort by Title</option>
+                </select>
+
+                <select
+                  value={subSortOrder}
+                  onChange={(e) => setSubSortOrder(e.target.value)}
+                  className="form-input"
+                  style={{ padding: "0.5rem 1rem", marginBottom: 0 }}
+                >
+                  <option value="desc">Newest First</option>
+                  <option value="asc">Oldest First</option>
+                </select>
               </div>
 
-              {/* Average grade card */}
-              {reviewed > 0 && (
-                <div style={{ background: "#fff", borderRadius: "14px", padding: "1.5rem", marginBottom: "1.5rem", boxShadow: "0 2px 12px rgba(0,0,0,0.06)", display: "flex", gap: "2rem", alignItems: "center" }}>
-                  <div style={{ textAlign: "center" }}>
-                    <p style={{ fontSize: "3rem", fontWeight: "700", color: getGradeColor(Math.round(submissions.filter(s => s.status === "reviewed").reduce((acc, s) => acc + s.grade, 0) / reviewed)) }}>
-                      {Math.round(submissions.filter(s => s.status === "reviewed").reduce((acc, s) => acc + s.grade, 0) / reviewed)}
-                    </p>
-                    <p style={{ color: "#6b7280", fontSize: "0.85rem" }}>Average Grade</p>
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ height: "10px", background: "#f3f4f6", borderRadius: "10px", overflow: "hidden" }}>
-                      <div style={{
-                        width: `${Math.round(submissions.filter(s => s.status === "reviewed").reduce((acc, s) => acc + s.grade, 0) / reviewed)}%`,
-                        height: "100%",
-                        background: getGradeColor(Math.round(submissions.filter(s => s.status === "reviewed").reduce((acc, s) => acc + s.grade, 0) / reviewed)),
-                        borderRadius: "10px"
-                      }} />
-                    </div>
-                    <p style={{ color: "#6b7280", fontSize: "0.85rem", marginTop: "0.5rem" }}>{reviewed} assignment(s) reviewed</p>
-                  </div>
-                </div>
-              )}
-
-              {/* Individual grades */}
-              <div className="data-table">
-                <div className="table-header"><h2>Grade Details</h2></div>
-                {submissions.filter(s => s.status === "reviewed").length === 0 ? (
-                  <div className="empty-state">
-                    <div className="empty-icon">📊</div>
-                    <p>No grades yet. Submit assignments to get graded.</p>
-                  </div>
+              <div className="card">
+                {filteredGrades.length === 0 ? (
+                  <p style={{ textAlign: "center", color: "#cbd5e1" }}>No grades yet</p>
                 ) : (
-                  submissions.filter(s => s.status === "reviewed").map(s => (
-                    <div key={s._id} className="table-row">
-                      <div style={{ flex: 1 }}>
-                        <p style={{ fontWeight: "600" }}>{s.assignmentId?.title}</p>
-                        <p style={{ color: "#6b7280", fontSize: "0.85rem", marginTop: "0.2rem", fontStyle: "italic" }}>
-                          {s.feedback ? `💬 "${s.feedback}"` : "No feedback provided"}
-                        </p>
-                        <p style={{ color: "#9ca3af", fontSize: "0.78rem", marginTop: "0.2rem" }}>
-                          Reviewed on {new Date(s.reviewedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
-                        </p>
-                      </div>
-                      <div style={{ textAlign: "right" }}>
-                        <p style={{ fontSize: "1.6rem", fontWeight: "700", color: getGradeColor(s.grade) }}>
-                          {s.grade}/100
-                        </p>
-                        <div style={{ width: "80px", height: "6px", background: "#f3f4f6", borderRadius: "10px", overflow: "hidden", marginTop: "0.3rem", marginLeft: "auto" }}>
-                          <div style={{ width: `${s.grade}%`, height: "100%", background: getGradeColor(s.grade), borderRadius: "10px" }} />
-                        </div>
-                      </div>
-                    </div>
-                  ))
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>Assignment</th>
+                        <th style={{ textAlign: "center" }}>Grade</th>
+                        <th>Feedback</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredGrades.map((s) => (
+                        <tr key={s._id}>
+                          <td>{s.assignmentId?.title || "Assignment"}</td>
+                          <td style={{ textAlign: "center", fontWeight: "700", color: "#10b981" }}>
+                            {s.grade}/100
+                          </td>
+                          <td>{s.feedback || "-"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 )}
               </div>
-            </>
+            </div>
           )}
-
-         {/* ── PROFILE SECTION ── */}
-{activeSection === "profile" && (
-  <>
-    <div className="page-header">
-      <div>
-        <h1 className="page-title">👤 My Profile</h1>
-        <p className="page-subtitle">Your account details</p>
-      </div>
-    </div>
-
-    <div style={{ background: "#fff", borderRadius: "16px", padding: "2rem", boxShadow: "0 2px 12px rgba(0,0,0,0.06)", maxWidth: "500px" }}>
-
-      {/* Profile Picture */}
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: "2rem" }}>
-        <div style={{ position: "relative" }}>
-          <img
-            src={profileImage || `https://ui-avatars.com/api/?name=${user?.email}&background=4f46e5&color=fff&size=128`}
-            alt="Profile"
-            style={{ width: "100px", height: "100px", borderRadius: "50%", objectFit: "cover", border: "3px solid #4f46e5" }}
-          />
-          <label style={{
-            position: "absolute", bottom: 0, right: 0,
-            background: "#4f46e5", color: "#fff", borderRadius: "50%",
-            width: "28px", height: "28px", display: "flex",
-            alignItems: "center", justifyContent: "center",
-            cursor: "pointer", fontSize: "0.85rem"
-          }}>
-            ✏️
-            <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: "none" }} />
-          </label>
         </div>
-        {uploading && <p style={{ color: "#4f46e5", fontSize: "0.82rem", marginTop: "0.5rem" }}>Uploading...</p>}
-      </div>
-
-      {/* Info */}
-      {[
-        { label: "Email", value: user?.email, icon: "📧" },
-        { label: "Role", value: "Student", icon: "🎓" },
-        { label: "Total Submissions", value: submissions.length, icon: "📤" },
-        { label: "Reviewed", value: reviewed, icon: "✅" },
-        { label: "Pending", value: pending, icon: "⏳" },
-      ].map(item => (
-        <div key={item.label} style={{
-          display: "flex", justifyContent: "space-between",
-          alignItems: "center", padding: "0.85rem 0",
-          borderBottom: "1px solid #f3f4f6"
-        }}>
-          <span style={{ color: "#6b7280", fontSize: "0.9rem" }}>{item.icon} {item.label}</span>
-          <span style={{ fontWeight: "600", color: "#111827" }}>{item.value}</span>
-        </div>
-      ))}
-    </div>
-  </>
-)}
- 
-        </main>
       </div>
     </div>
   );

@@ -7,17 +7,23 @@ export default function CreateAssignment() {
   const [form, setForm] = useState({ title: "", description: "", deadline: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!form.title.trim() || !form.description.trim()) {
+      setError("Title and description are required");
+      return;
+    }
     setError("");
     setLoading(true);
     try {
       await createAssignment(form);
-      navigate("/mentor");
+      setSuccess(true);
+      setTimeout(() => navigate("/mentor"), 1500);
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to create assignment.");
+      setError(err.response?.data?.message || "Failed to create assignment");
     } finally {
       setLoading(false);
     }
@@ -26,150 +32,89 @@ export default function CreateAssignment() {
   return (
     <div>
       <Navbar />
-      <div style={{ padding: "2rem", maxWidth: "600px", margin: "0 auto" }}>
-        {/* Back Button */}
-        <button
-          onClick={() => navigate("/mentor")}
-          style={{
-            marginBottom: "1.5rem",
-            padding: "0.6rem 1.2rem",
-            background: "#6366f1",
-            color: "#fff",
-            border: "none",
-            borderRadius: "8px",
-            cursor: "pointer",
-            fontWeight: "600",
-            fontSize: "0.95rem"
-          }}
-        >
-          ← Back
-        </button>
+      <div style={{ marginTop: "65px", display: "flex", minHeight: "calc(100vh - 65px)" }}>
+        <div className="sidebar">
+          <div className="sidebar-section-label">📝 Create</div>
+          <button
+            onClick={() => navigate("/mentor")}
+            className="sidebar-item"
+          >
+            <span className="icon">⬅️</span>
+            Back to Dashboard
+          </button>
+        </div>
 
-        <h2 style={{ marginBottom: "1.5rem", fontSize: "1.8rem", fontWeight: "700", color: "#fff" }}>
-          📝 Create Assignment
-        </h2>
+        <div className="main-content" style={{ maxWidth: "600px" }}>
+          <h2>📝 Create New Assignment</h2>
 
-        {error && (
-          <div style={{
-            background: "#fee2e2",
-            color: "#991b1b",
-            padding: "0.8rem 1rem",
-            borderRadius: "8px",
-            marginBottom: "1rem",
-            fontWeight: "600"
-          }}>
-            ⚠️ {error}
+          {success && (
+            <div className="alert alert-success">
+              ✅ Assignment created successfully!
+            </div>
+          )}
+
+          {error && (
+            <div className="alert alert-danger">
+              ⚠️ {error}
+            </div>
+          )}
+
+          <div className="card">
+            <form onSubmit={handleSubmit}>
+              <div className="form-group">
+                <label className="form-label">Title *</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="e.g., Build a Calculator App"
+                  value={form.title}
+                  onChange={(e) => setForm({ ...form, title: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Description *</label>
+                <textarea
+                  className="form-textarea"
+                  placeholder="Describe the assignment requirements..."
+                  value={form.description}
+                  onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Deadline (Optional)</label>
+                <input
+                  type="date"
+                  className="form-input"
+                  value={form.deadline}
+                  onChange={(e) => setForm({ ...form, deadline: e.target.value })}
+                />
+              </div>
+
+              <div style={{ display: "flex", gap: "1rem" }}>
+                <button
+                  type="button"
+                  onClick={() => navigate("/mentor")}
+                  className="btn btn-secondary"
+                  style={{ flex: 1 }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading || success}
+                  className="btn btn-primary"
+                  style={{ flex: 1 }}
+                >
+                  {loading ? "Creating..." : success ? "✅ Created!" : "Create Assignment"}
+                </button>
+              </div>
+            </form>
           </div>
-        )}
-
-        <form onSubmit={handleSubmit} style={{
-          background: "#1e293b",
-          padding: "2rem",
-          borderRadius: "12px",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
-          border: "1px solid #334155"
-        }}>
-          <label style={{ fontWeight: "600", display: "block", marginBottom: "0.5rem", color: "#cbd5e1" }}>
-            Title
-          </label>
-          <input
-            style={{
-              display: "block",
-              width: "100%",
-              padding: "0.75rem 1rem",
-              marginBottom: "1.5rem",
-              border: "1px solid #475569",
-              borderRadius: "8px",
-              fontSize: "0.95rem",
-              background: "#0f172a",
-              color: "#f1f5f9"
-            }}
-            placeholder="Assignment title"
-            value={form.title}
-            onChange={(e) => setForm({ ...form, title: e.target.value })}
-            required
-          />
-
-          <label style={{ fontWeight: "600", display: "block", marginBottom: "0.5rem", color: "#cbd5e1" }}>
-            Description
-          </label>
-          <textarea
-            style={{
-              display: "block",
-              width: "100%",
-              padding: "0.75rem 1rem",
-              marginBottom: "1.5rem",
-              border: "1px solid #475569",
-              borderRadius: "8px",
-              fontSize: "0.95rem",
-              background: "#0f172a",
-              color: "#f1f5f9",
-              minHeight: "120px",
-              resize: "vertical",
-              fontFamily: "inherit"
-            }}
-            placeholder="Assignment description"
-            value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
-            required
-          />
-
-          <label style={{ fontWeight: "600", display: "block", marginBottom: "0.5rem", color: "#cbd5e1" }}>
-            Deadline (Optional)
-          </label>
-          <input
-            style={{
-              display: "block",
-              width: "100%",
-              padding: "0.75rem 1rem",
-              marginBottom: "2rem",
-              border: "1px solid #475569",
-              borderRadius: "8px",
-              fontSize: "0.95rem",
-              background: "#0f172a",
-              color: "#f1f5f9"
-            }}
-            type="date"
-            value={form.deadline}
-            onChange={(e) => setForm({ ...form, deadline: e.target.value })}
-          />
-
-          <div style={{ display: "flex", gap: "1rem" }}>
-            <button
-              type="button"
-              onClick={() => navigate("/mentor")}
-              style={{
-                flex: 1,
-                padding: "0.75rem",
-                background: "#475569",
-                color: "#f1f5f9",
-                border: "none",
-                borderRadius: "8px",
-                cursor: "pointer",
-                fontWeight: "600"
-              }}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              style={{
-                flex: 1,
-                padding: "0.75rem",
-                background: loading ? "#818cf8" : "#6366f1",
-                color: "#fff",
-                border: "none",
-                borderRadius: "8px",
-                cursor: loading ? "not-allowed" : "pointer",
-                fontWeight: "600",
-                opacity: loading ? 0.7 : 1
-              }}
-            >
-              {loading ? "Creating..." : "Create Assignment"}
-            </button>
-          </div>
-        </form>
+        </div>
       </div>
     </div>
   );

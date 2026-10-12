@@ -8,12 +8,20 @@ const userSchema = new mongoose.Schema({
 
   role: {
     type: String,
-    enum: ["mentor", "student"],
+    enum: ["admin", "mentor", "student"],  // ← ADDED: admin
     required: true,
+    default: "student"
   },
+
+  // For blocking users
+  isActive: { type: Boolean, default: true },
+  blockedAt: { type: Date, default: null },
+  blockedReason: { type: String, default: "" },
 
   resetPasswordToken: { type: String, default: "" },
   resetPasswordExpire: { type: Date },
+  
+  createdAt: { type: Date, default: Date.now },
 });
 
 export default mongoose.model("User", userSchema);

@@ -8,6 +8,8 @@ export const register = async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
 
+    console.log("📝 Register:", { name, email, role });
+
     const existing = await User.findOne({ email });
     if (existing) {
       return res.status(400).json({ message: "Email already registered" });
@@ -18,19 +20,30 @@ export const register = async (req, res) => {
       name,
       email,
       password: hashed,
-      role,
+      role: role || "student",
     });
 
-    res.json({ token: generateToken(user) });
+    console.log("✅ Registered:", user._id);
+    const token = generateToken(user);
+
+    res.status(201).json({
+      message: "Registration successful",
+      token,
+      user: { id: user._id, name: user.name, email: user.email, role: user.role }
+    });
   } catch (err) {
-    console.error(err);
+    console.error("❌ Register error:", err.message);
     res.status(500).json({ message: "Registration failed", error: err.message });
   }
 };
 
 export const login = async (req, res) => {
   try {
+    console.log("🔍 Full req.body:", JSON.stringify(req.body));
     const { email, password } = req.body;
+    console.log("🔐 Extracted email:", email);
+    console.log("🔐 Extracted password:", password);
+    console.log("🔐 Login:", { email });
 
     const user = await User.findOne({ email });
     if (!user) {
@@ -42,9 +55,16 @@ export const login = async (req, res) => {
       return res.status(400).json({ message: "Wrong password" });
     }
 
-    res.json({ token: generateToken(user) });
+    console.log("✅ Login successful:", user._id);
+    const token = generateToken(user);
+
+    res.json({
+      message: "Login successful",
+      token,
+      user: { id: user._id, name: user.name, email: user.email, role: user.role }
+    });
   } catch (err) {
-    console.error(err);
+    console.error("❌ Login error:", err.message);
     res.status(500).json({ message: "Login failed", error: err.message });
   }
 };
@@ -52,6 +72,8 @@ export const login = async (req, res) => {
 export const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
+
+    console.log("📧 Forgot password:", { email });
 
     const user = await User.findOne({ email });
     if (!user) {
@@ -82,9 +104,10 @@ export const forgotPassword = async (req, res) => {
       `
     );
 
+    console.log("✅ Reset email sent:", email);
     res.json({ message: "Password reset email sent" });
   } catch (err) {
-    console.error(err);
+    console.error("❌ Forgot password error:", err.message);
     res.status(500).json({ message: "Failed to send reset email", error: err.message });
   }
 };
@@ -93,6 +116,8 @@ export const resetPassword = async (req, res) => {
   try {
     const { token } = req.params;
     const { password } = req.body;
+
+    console.log("🔄 Reset password with token");
 
     const hashedToken = crypto
       .createHash("sha256")
@@ -114,9 +139,10 @@ export const resetPassword = async (req, res) => {
 
     await user.save();
 
+    console.log("✅ Password reset successful:", user._id);
     res.json({ message: "Password reset successful" });
   } catch (err) {
-    console.error(err);
+    console.error("❌ Reset password error:", err.message);
     res.status(500).json({ message: "Password reset failed", error: err.message });
   }
 };

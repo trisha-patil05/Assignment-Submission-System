@@ -24,7 +24,7 @@ export const io = new Server(server, {
       "http://localhost:3000",
       "https://assignment-submission-system-nu.vercel.app"
     ],
-    methods: ["GET", "POST", "PATCH"],
+    methods: ["GET", "POST", "PATCH", "DELETE"],
   },
   transports: ["websocket", "polling"],
 });

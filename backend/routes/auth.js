@@ -1,10 +1,5 @@
 import express from "express";
-import {
-  forgotPassword,
-  login,
-  register,
-  resetPassword,
-} from "../controllers/authController.js";
+import { forgotPassword, login, register, resetPassword } from '../controllers/authController.js';
 import auth from "../middleware/authMiddleware.js";
 import User from "../models/User.js";
 
